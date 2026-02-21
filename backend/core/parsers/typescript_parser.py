@@ -106,7 +106,8 @@ class TypeScriptASTParser:
             start = max(0, node.start_byte - 20)
             surrounding = code[start:node.start_byte]
             is_async = "async" in surrounding
-            functions.append({"name": name, "is_async": is_async})
+            line_number = code[:node.start_byte].count("\n") + 1
+            functions.append({"name": name, "is_async": is_async, "line_number": line_number})
         return functions
 
     # ------------------------------------------------------------------

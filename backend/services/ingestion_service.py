@@ -1,10 +1,14 @@
 from services.graph_service import graph_service
 from services.llm_service import llm_service
+from services.github_service import GitHubService
+from services.event_service import record_event
 from core.parsers.python_parser import python_parser
 from core.parsers.typescript_parser import typescript_parser
+from core.config import settings
 import os
 import tempfile
 import subprocess
+import hashlib
 
 # File extensions we skip entirely (binary, lockfiles, configs)
 SKIP_EXTENSIONS = {
@@ -16,7 +20,54 @@ SKIP_EXTENSIONS = {
 
 class IngestionService:
     def __init__(self):
-        pass
+        self._file_hashes: dict[str, str] = {}  # path → content hash for incremental ingestion
+
+    def _content_hash(self, content: str) -> str:
+        """SHA256 hash of file content for change detection."""
+        return hashlib.sha256(content.encode('utf-8', errors='ignore')).hexdigest()[:16]
+
+    def _check_existing_hash(self, service_name: str, file_path: str) -> str:
+        """Check if this file already has a content hash stored in Neo4j."""
+        try:
+            with graph_service.driver.session() as session:
+                result = session.run(
+                    "MATCH (f:File {path: $path, service: $service}) RETURN f.content_hash AS hash",
+                    path=file_path, service=service_name
+                )
+                rec = result.single()
+                return rec["hash"] if rec and rec["hash"] else ""
+        except Exception:
+            return ""
+
+    def _store_file_hash(self, service_name: str, file_path: str, content_hash: str):
+        """Store the content hash on the File node for future incremental checks."""
+        try:
+            with graph_service.driver.session() as session:
+                session.run(
+                    "MATCH (f:File {path: $path, service: $service}) SET f.content_hash = $hash",
+                    path=file_path, service=service_name, hash=content_hash
+                )
+        except Exception:
+            pass
+
+    def _get_git_metadata(self, repo_dir: str, file_path: str) -> dict:
+        """
+        Returns {"hash": <last commit hash>, "date": <ISO date>} for the given file
+        by running git log once with --follow.
+        Falls back to empty strings on any error.
+        """
+        try:
+            rel = os.path.relpath(file_path, repo_dir)
+            result = subprocess.run(
+                ["git", "-C", repo_dir, "log", "--follow", "--format=%H %aI", "-1", "--", rel],
+                capture_output=True, text=True, timeout=5
+            )
+            parts = result.stdout.strip().split(" ", 1)
+            if len(parts) == 2:
+                return {"hash": parts[0], "date": parts[1]}
+        except Exception:
+            pass
+        return {"hash": "", "date": ""}
 
     def _get_module_name(self, file_path: str, root_dir: str) -> str:
         """
@@ -29,17 +80,23 @@ class IngestionService:
             return "root"
         return rel.replace(os.sep, ".")
 
-    def _ingest_python_file(self, service_name: str, file_path: str, module_name: str, code: str):
+    def _ingest_python_file(self, service_name: str, file_path: str, module_name: str,
+                              code: str, repo_dir: str = ""):
         """Processes a single Python file and creates all graph nodes for it."""
+        fname = os.path.basename(file_path)
 
-        # 1. File node
-        graph_service.create_file_node(service_name, module_name, file_path, language="python")
+        # Git metadata
+        git = self._get_git_metadata(repo_dir, file_path) if repo_dir else {"hash": "", "date": ""}
+
+        # 1. File node  (with git metadata)
+        graph_service.create_file_node(
+            service_name, module_name, file_path, language="python",
+            last_commit_hash=git["hash"], last_modified_date=git["date"]
+        )
 
         # 2. API Endpoints  (Flask/FastAPI decorators)
-        # Tree-sitter does the fast structural pass first
         raw_endpoints = python_parser.extract_endpoints(code)
-        # Gemini then validates and fills in anything Tree-sitter missed
-        endpoints = llm_service.validate_and_fix_endpoints(code, raw_endpoints, os.path.basename(file_path))
+        endpoints = llm_service.validate_and_fix_endpoints(code, raw_endpoints, fname)
         for ep in endpoints:
             graph_service.create_endpoint_node(
                 service_name, ep["path"], method=ep["method"], file_path=file_path
@@ -50,29 +107,61 @@ class IngestionService:
         schemas = {s["name"] for s in python_parser.extract_schemas(code)}
         for cls in python_parser.extract_classes(code):
             if cls["name"] in schemas:
-                # This class is a Pydantic / dataclass model -> Schema node
                 graph_service.create_schema_node(service_name, file_path, cls["name"], schema_type="pydantic")
                 print(f"  [Python] Schema    {cls['name']}")
             else:
-                graph_service.create_class_node(service_name, file_path, cls["name"], base_classes=cls["bases"])
+                graph_service.create_class_node(
+                    service_name, file_path, cls["name"], base_classes=cls["bases"]
+                )
                 print(f"  [Python] Class     {cls['name']}")
 
-        # 4. Functions  (top-level only — class methods are picked up via class_name=None)
-        for fn in python_parser.extract_functions(code):
+        # 4. Functions — with line_number, docstring, complexity_score
+        all_functions = python_parser.extract_functions(code)
+        func_names = {fn["name"] for fn in all_functions}
+        for fn in all_functions:
             graph_service.create_function_node(
-                service_name, file_path, fn["name"], is_async=fn["is_async"]
+                service_name, file_path, fn["name"],
+                is_async=fn["is_async"],
+                line_number=fn["line_number"],
+                docstring=fn["docstring"],
+                complexity_score=fn["complexity_score"]
             )
 
-        # 5. Import edges (inter-file dependencies)
+        # 5. Function CALLS edges (intra-file: only if callee is a known function here)
+        all_callees = python_parser.extract_function_calls(code)
+        for fn in all_functions:
+            for callee in all_callees:
+                if callee in func_names and callee != fn["name"]:
+                    graph_service.create_function_call_edge(fn["name"], file_path, callee)
+
+        # 6. DB operations  — attribute to file-level placeholder table
+        db_ops = python_parser.extract_db_operations(code)
+        if db_ops:
+            table_hint = f"{service_name}_db"
+            for fn in all_functions:
+                for op in db_ops:
+                    if op["operation"] == "write":
+                        graph_service.create_db_write_edge(fn["name"], file_path, table_hint)
+                    else:
+                        graph_service.create_db_read_edge(fn["name"], file_path, table_hint)
+
+        # 7. Import edges (inter-file dependencies)
         for imp in python_parser.extract_imports(code):
             graph_service.create_import_edge(file_path, imp)
 
-    def _ingest_ts_js_file(self, service_name: str, file_path: str, module_name: str, code: str, lang: str):
+    def _ingest_ts_js_file(self, service_name: str, file_path: str, module_name: str,
+                             code: str, lang: str, repo_dir: str = ""):
         """Processes a single TypeScript or JavaScript file."""
         fname = os.path.basename(file_path)
 
-        # 1. File node
-        graph_service.create_file_node(service_name, module_name, file_path, language=lang)
+        # Git metadata
+        git = self._get_git_metadata(repo_dir, file_path) if repo_dir else {"hash": "", "date": ""}
+
+        # 1. File node  (with git metadata)
+        graph_service.create_file_node(
+            service_name, module_name, file_path, language=lang,
+            last_commit_hash=git["hash"], last_modified_date=git["date"]
+        )
 
         # 2. API Endpoints  (Express-style calls)
         try:
@@ -94,11 +183,15 @@ class IngestionService:
         except Exception as e:
             print(f"  [WARN]   Classes skipped for {fname}: {e}")
 
-        # 4. Functions / arrow functions
+        # 4. Functions / arrow functions — with line_number
+        all_functions = []
         try:
-            for fn in typescript_parser.extract_functions(code, language=lang):
+            all_functions = typescript_parser.extract_functions(code, language=lang)
+            for fn in all_functions:
                 graph_service.create_function_node(
-                    service_name, file_path, fn["name"], is_async=fn["is_async"]
+                    service_name, file_path, fn["name"],
+                    is_async=fn["is_async"],
+                    line_number=fn.get("line_number", 0)
                 )
         except Exception as e:
             print(f"  [WARN]   Functions skipped for {fname}: {e}")
@@ -161,13 +254,13 @@ class IngestionService:
                             code = f.read()
 
                         if ext == ".py":
-                            self._ingest_python_file(service_name, file_path, module_name, code)
+                            self._ingest_python_file(service_name, file_path, module_name, code, repo_dir=temp_dir)
                             file_count += 1
                         elif ext in (".ts", ".tsx"):
-                            self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="ts")
+                            self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="ts", repo_dir=temp_dir)
                             file_count += 1
                         elif ext in (".js", ".jsx", ".mjs", ".cjs"):
-                            self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="js")
+                            self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="js", repo_dir=temp_dir)
                             file_count += 1
 
                     except Exception as e:
@@ -176,5 +269,137 @@ class IngestionService:
         msg = f"Ingested {file_count} files from '{service_name}' into the Knowledge Graph."
         print(f"\n{msg}")
         return {"status": "success", "message": msg}
+
+    def ingest_from_github(self, repo_url: str, branch: str = "main", incremental: bool = True):
+        """
+        Ingest a GitHub repository via the GitHub API — no local clone needed.
+        Fetches every code file directly and parses it into the Knowledge Graph.
+        
+        incremental=True: Only re-parse files whose content hash has changed.
+        """
+        print(f"\nStarting GitHub API ingestion for {repo_url} (branch: {branch}, incremental: {incremental})")
+        service_name = repo_url.rstrip("/").replace(".git", "").split("/")[-1]
+
+        graph_service.create_service_node(
+            name=service_name,
+            description=f"Ingested via GitHub API from {repo_url}",
+            language="Mixed",
+        )
+        record_event("CREATE", "Service", service_name, service=service_name,
+                      details={"repo_url": repo_url, "branch": branch}, source="ingestion")
+
+        # Store repo metadata on the Service node
+        try:
+            with graph_service.driver.session() as session:
+                session.run("""
+                    MATCH (s:Service {name: $name})
+                    SET s.repo_url = $repo_url,
+                        s.branch = $branch,
+                        s.last_ingested = datetime()
+                """, name=service_name, repo_url=repo_url, branch=branch)
+        except Exception:
+            pass
+
+        svc = GitHubService(token=settings.github_token)
+        file_count = 0
+        skipped_count = 0
+
+        for file_path, ext, code in svc.iter_code_files(repo_url, branch):
+            # --- Incremental check ---
+            if incremental:
+                new_hash = self._content_hash(code)
+                existing_hash = self._check_existing_hash(service_name, file_path)
+                if new_hash == existing_hash:
+                    skipped_count += 1
+                    continue
+
+            # Derive a module name from the directory portion of the path
+            dir_part = "/".join(file_path.split("/")[:-1])
+            module_name = dir_part.replace("/", ".") if dir_part else "root"
+
+            graph_service.create_module_node(service_name, module_name)
+
+            try:
+                if ext == ".py":
+                    self._ingest_python_file(service_name, file_path, module_name, code)
+                elif ext in (".ts", ".tsx"):
+                    self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="ts")
+                elif ext in (".js", ".jsx", ".mjs", ".cjs"):
+                    self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="js")
+
+                # Store content hash for incremental detection
+                if incremental:
+                    self._store_file_hash(service_name, file_path, new_hash)
+
+                record_event("CREATE", "File", file_path, service=service_name,
+                              details={"extension": ext, "module": module_name}, source="ingestion")
+                file_count += 1
+            except Exception as e:
+                print(f"  [ERROR] {file_path}: {e}")
+
+        msg = f"GitHub ingestion complete: {file_count} files processed from '{service_name}'."
+        if incremental and skipped_count > 0:
+            msg += f" ({skipped_count} unchanged files skipped.)"
+        print(f"\n{msg}")
+        return {"status": "success", "message": msg, "files_processed": file_count, "files_skipped": skipped_count}
+
+    def ingest_multiple_repos(self, repos: list[dict]) -> dict:
+        """
+        Ingest multiple repositories and create cross-repo dependency links.
+        
+        repos: list of {"repo_url": str, "branch": str} dicts.
+        """
+        results = []
+        service_names = []
+
+        for repo in repos:
+            url = repo["repo_url"]
+            branch = repo.get("branch", "main")
+            result = self.ingest_from_github(url, branch)
+            results.append(result)
+            service_name = url.rstrip("/").replace(".git", "").split("/")[-1]
+            service_names.append(service_name)
+
+        # After ingesting all repos, attempt to discover cross-repo dependencies
+        # by looking for import references that match other service module names
+        cross_links = self._discover_cross_repo_deps(service_names)
+
+        return {
+            "status": "success",
+            "repos": results,
+            "services": service_names,
+            "cross_repo_links": cross_links,
+        }
+
+    def _discover_cross_repo_deps(self, service_names: list[str]) -> int:
+        """
+        After multi-repo ingestion, look for import edges that reference
+        modules belonging to other services, and create DEPENDS_ON edges.
+        """
+        if len(service_names) < 2:
+            return 0
+
+        cypher = """
+        MATCH (f:File)-[:IMPORTS]->(m:Module)
+        WHERE f.service IN $services AND m.service IN $services
+          AND f.service <> m.service
+        WITH DISTINCT f.service AS src, m.service AS dst
+        MERGE (s1:Service {name: src})
+        MERGE (s2:Service {name: dst})
+        MERGE (s1)-[:DEPENDS_ON {protocol: 'import', discovered: true}]->(s2)
+        RETURN count(*) AS links
+        """
+        try:
+            with graph_service.driver.session() as session:
+                result = session.run(cypher, services=service_names)
+                rec = result.single()
+                count = rec["links"] if rec else 0
+                if count > 0:
+                    print(f"  [Multi-repo] Discovered {count} cross-repo dependencies")
+                return count
+        except Exception as e:
+            print(f"  [Multi-repo] Cross-repo discovery failed: {e}")
+            return 0
+
 
 ingestion_service = IngestionService()

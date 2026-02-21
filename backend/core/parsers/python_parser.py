@@ -76,7 +76,7 @@ class PythonASTParser:
     # ------------------------------------------------------------------
     # FUNCTIONS
     # Looks for:  def foo(...):  and  async def foo(...):
-    # Returns list of {"name": str, "is_async": bool}
+    # Returns list of {"name", "is_async", "line_number", "docstring", "complexity_score"}
     # ------------------------------------------------------------------
     def extract_functions(self, code: str):
         captures, _ = self._query(code, """
@@ -84,17 +84,52 @@ class PythonASTParser:
           name: (identifier) @func_name
         )
         """)
+        lines = code.splitlines()
         functions = []
         for node in captures.get("func_name", []):
             name = code[node.start_byte:node.end_byte]
-            # Check if 'async' keyword precedes 'def' in the parent node text
             start = max(0, node.start_byte - 20)
             surrounding = code[start:node.start_byte]
             is_async = "async" in surrounding
-            functions.append({"name": name, "is_async": is_async})
-        return functions
+            line_number = code[:node.start_byte].count("\n") + 1
 
-    # ------------------------------------------------------------------
+            # Extract docstring: look for a string literal right after the def line
+            docstring = ""
+            try:
+                # find the colon ending the def line, then grab the first string
+                rest = code[node.end_byte:]
+                colon_idx = rest.find(":")
+                if colon_idx != -1:
+                    body = rest[colon_idx + 1:colon_idx + 300].lstrip()
+                    if body.startswith('"""') or body.startswith("'''"):
+                        quote = body[:3]
+                        end = body.find(quote, 3)
+                        if end != -1:
+                            docstring = body[3:end].strip()
+            except Exception:
+                pass
+
+            # Complexity score = count branch keywords in the function body (McCabe-style)
+            try:
+                func_line = line_number - 1
+                # grab up to 100 lines of body
+                body_lines = lines[func_line:func_line + 100]
+                body_text  = "\n".join(body_lines)
+                complexity = 1 + sum(
+                    body_text.count(kw)
+                    for kw in (" if ", " elif ", " for ", " while ", " except ",
+                               " and ", " or ", " with ")
+                )
+            except Exception:
+                complexity = 1
+
+            functions.append({
+                "name": name,
+                "is_async": is_async,
+                "line_number": line_number,
+                "docstring": docstring,
+                "complexity_score": complexity,
+            })
     # PYDANTIC SCHEMAS
     # Looks for: class SomeName(BaseModel):
     # Returns list of schema names
@@ -127,5 +162,56 @@ class PythonASTParser:
             name = code[node.start_byte:node.end_byte]
             imports.append(name)
         return list(set(imports))  # deduplicate
+
+    # ------------------------------------------------------------------
+    # FUNCTION CALL EDGES  (who calls whom inside this file)
+    # Returns list of {"caller": str, "callee": str}
+    # ------------------------------------------------------------------
+    def extract_function_calls(self, code: str):
+        """
+        Finds all direct function calls in the file.
+        Used to build Function -[CALLS]-> Function edges.
+        """
+        captures, _ = self._query(code, """
+        (call
+          function: (identifier) @callee
+        )
+        """)
+        # We don't have caller context here, so return just callees.
+        # The ingestion layer pairs them with their enclosing function.
+        callees = set()
+        for node in captures.get("callee", []):
+            callees.add(code[node.start_byte:node.end_byte])
+        return list(callees)
+
+    # ------------------------------------------------------------------
+    # DB OPERATIONS  (detect ORM / raw SQL calls)
+    # Returns list of {"operation": "write"|"read", "hint": str}
+    # ------------------------------------------------------------------
+    def extract_db_operations(self, code: str):
+        """
+        Heuristically detects DB write / read operations.
+        Used to build Function -[WRITES_TO / READS_FROM]-> Table edges.
+        Looks for ORM-style method calls: .save(), .create(), .filter(), etc.
+        """
+        write_hints = {"save", "create", "insert", "update", "delete",
+                       "bulk_create", "execute", "commit", "insert_one",
+                       "update_one", "delete_one", "replace_one"}
+        read_hints  = {"filter", "get", "all", "find", "find_one", "select",
+                       "query", "fetch", "fetchall", "fetchone", "aggregate"}
+        captures, _ = self._query(code, """
+        (call
+          function: (attribute attribute: (identifier) @method)
+        )
+        """)
+        ops = []
+        for node in captures.get("method", []):
+            name = code[node.start_byte:node.end_byte].lower()
+            if name in write_hints:
+                ops.append({"operation": "write", "hint": name})
+            elif name in read_hints:
+                ops.append({"operation": "read", "hint": name})
+        return ops
+
 
 python_parser = PythonASTParser()
