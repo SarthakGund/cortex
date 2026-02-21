@@ -21,8 +21,15 @@ class Settings(BaseSettings):
     # LLM Settings
     OPENAI_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
+    
+    # GitHub Automation Settings
+    GITHUB_TOKEN: Optional[str] = None
+    WEBHOOK_URL: Optional[str] = None
+    GITHUB_CLIENT_ID: Optional[str] = None
+    GITHUB_CLIENT_SECRET: Optional[str] = None
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()

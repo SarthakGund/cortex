@@ -118,29 +118,67 @@ class IngestionService:
         except Exception as e:
             print(f"  [WARN]   Imports skipped for {fname}: {e}")
 
-    def ingest_repository(self, repo_url: str):
+    def ingest_repository(self, repo_url: str, github_token: str = None):
         """
         Main entry point:
-        1. Clone repo into a temp dir
+        1. Fetch repo source zip from GitHub API
         2. Walk every source file
         3. Build Module -> File -> Class/Function/Schema/Endpoint nodes
         4. Push everything into Neo4j
         """
+        import requests
+        import zipfile
+        import io
+        from core.config import settings
+
         print(f"\nStarting ingestion for {repo_url}")
         service_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
 
         graph_service.create_service_node(name=service_name, description=f"Ingested from {repo_url}", language="Mixed")
 
+        # Extract owner and repo
+        parts = repo_url.rstrip("/").replace(".git", "").split("/")
+        if len(parts) >= 2:
+            owner, repo = parts[-2], parts[-1]
+        else:
+            return {"status": "error", "message": "Invalid GitHub repository URL"}
+
+        # Use the passed token or fallback to environment token
+        request_token = github_token or settings.GITHUB_TOKEN
+
+        # Use the GitHub API to fetch the zipball for the default branch
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/zipball"
+        headers = {}
+        if request_token:
+            headers["Authorization"] = f"token {request_token}"
+
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
-                print(f"Cloning into {temp_dir} ...")
-                subprocess.run(["git", "clone", "--depth", "1", repo_url, temp_dir],
-                               check=True, capture_output=True)
-            except subprocess.CalledProcessError as e:
-                return {"status": "error", "message": f"Clone failed: {e.stderr.decode()}"}
+                print(f"Fetching source from GitHub API...")
+                resp = requests.get(api_url, headers=headers)
+                
+                # Check for rate limiting / not found
+                if resp.status_code != 200:
+                    error_msg = resp.json().get('message', 'Unknown API Error') if resp.headers.get('Content-Type') == 'application/json' else resp.text
+                    return {"status": "error", "message": f"GitHub API failed ({resp.status_code}): {error_msg}"}
+
+                # Extract zip into temp_dir
+                print("Extracting repository...")
+                with zipfile.ZipFile(io.BytesIO(resp.content)) as z:
+                    z.extractall(temp_dir)
+                    
+                # GitHub zips put everything in a nested folder (owner-repo-commithash)
+                extracted_items = os.listdir(temp_dir)
+                if len(extracted_items) == 1 and os.path.isdir(os.path.join(temp_dir, extracted_items[0])):
+                    source_dir = os.path.join(temp_dir, extracted_items[0])
+                else:
+                    source_dir = temp_dir
+                    
+            except Exception as e:
+                return {"status": "error", "message": f"Failed to fetch/extract repo: {e}"}
 
             file_count = 0
-            for root, dirs, files in os.walk(temp_dir):
+            for root, dirs, files in os.walk(source_dir):
                 # Skip hidden / vendor directories
                 dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("node_modules", "__pycache__", ".git", "dist", "build")]
 
@@ -172,6 +210,13 @@ class IngestionService:
 
                     except Exception as e:
                         print(f"  [ERROR] {file_path}: {e}")
+
+        # 5. Create Webhook
+        try:
+            from services.github_service import github_service
+            github_service.create_webhook(repo_url, github_token=request_token)
+        except Exception as e:
+            print(f"  [ERROR] Webhook setup failed: {e}")
 
         msg = f"Ingested {file_count} files from '{service_name}' into the Knowledge Graph."
         print(f"\n{msg}")

@@ -52,6 +52,15 @@ interface VectorStats {
   llm_enabled: boolean;
 }
 
+interface CommitSummary {
+  hash: string;
+  author: string;
+  summary: string;
+  timestamp: string;
+  message: string;
+  service: string;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function uid() {
@@ -115,8 +124,8 @@ function StatusBadge({
   return (
     <span
       className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${ok
-          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-          : "bg-red-500/10 border-red-500/20 text-red-400"
+        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+        : "bg-red-500/10 border-red-500/20 text-red-400"
         }`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${ok ? "bg-emerald-400" : "bg-red-400"}`} />
@@ -215,8 +224,8 @@ function MessageBubble({ msg }: { msg: Message }) {
       {/* Avatar */}
       <div
         className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shadow-lg ${isUser
-            ? "bg-gradient-to-br from-blue-500 to-purple-600"
-            : "bg-gradient-to-br from-slate-700 to-slate-800 border border-[var(--color-border)]"
+          ? "bg-gradient-to-br from-blue-500 to-purple-600"
+          : "bg-gradient-to-br from-slate-700 to-slate-800 border border-[var(--color-border)]"
           }`}
       >
         {isUser ? "U" : <Sparkles size={16} className="text-blue-400" />}
@@ -226,8 +235,8 @@ function MessageBubble({ msg }: { msg: Message }) {
         {/* Bubble */}
         <div
           className={`rounded-2xl px-4 py-3 shadow-sm ${isUser
-              ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm"
-              : "bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-tl-sm"
+            ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm"
+            : "bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-tl-sm"
             }`}
         >
           {msg.isLoading ? (
@@ -284,6 +293,22 @@ function IngestTab() {
   const [syncing, setSyncing] = useState(false);
   const [stats, setStats] = useState<VectorStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [githubToken, setGithubToken] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token");
+      if (token) {
+        setGithubToken(token);
+        localStorage.setItem("github_token", token);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        const stored = localStorage.getItem("github_token");
+        if (stored) setGithubToken(stored);
+      }
+    }
+  }, []);
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
@@ -309,7 +334,7 @@ function IngestTab() {
       const r = await fetch(`${API}/ingest/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo_url: repoUrl }),
+        body: JSON.stringify({ repo_url: repoUrl, github_token: githubToken }),
       });
       const d = await r.json();
       setStatus({ type: "success", text: d.message });
@@ -400,6 +425,37 @@ function IngestTab() {
         </div>
 
         <form onSubmit={handleIngest} className="space-y-4">
+          {/* GitHub Connection */}
+          <div className="flex items-center justify-between mb-2 p-3 bg-slate-800/20 rounded-xl border border-[var(--color-border)]">
+            <div className="flex items-center gap-3">
+              <Code2 size={16} className={githubToken ? "text-emerald-400" : "text-[var(--color-text-muted)]"} />
+              <div>
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  {githubToken ? "GitHub Connected" : "GitHub OAuth Not Connected"}
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  Connect to access private repos & attach webhooks.
+                </p>
+              </div>
+            </div>
+            {githubToken ? (
+              <button
+                type="button"
+                onClick={() => { setGithubToken(""); localStorage.removeItem("github_token"); }}
+                className="text-xs text-red-500 hover:text-red-400 font-medium px-2 py-1"
+              >
+                Disconnect
+              </button>
+            ) : (
+              <a
+                href={`${API}/auth/github/login`}
+                className="text-xs font-semibold px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 rounded-lg transition-all"
+              >
+                Connect App
+              </a>
+            )}
+          </div>
+
           <div>
             <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-2">
               GitHub Repository URL
@@ -498,10 +554,10 @@ function IngestTab() {
       {status && (
         <div
           className={`flex items-start gap-3 p-4 rounded-xl border fade-in-up ${status.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
-              : status.type === "error"
-                ? "bg-red-500/10 border-red-500/20 text-red-300"
-                : "bg-blue-500/10 border-blue-500/20 text-blue-300"
+            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
+            : status.type === "error"
+              ? "bg-red-500/10 border-red-500/20 text-red-300"
+              : "bg-blue-500/10 border-blue-500/20 text-blue-300"
             }`}
         >
           {status.type === "success" ? (
@@ -734,9 +790,117 @@ function ChatTab() {
   );
 }
 
+// ── Tab: Commits (AI Summaries) ────────────────────────────────────────────────
+
+function CommitsTab() {
+  const [commits, setCommits] = useState<CommitSummary[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchCommits = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/webhook/commits`);
+      if (r.ok) {
+        const data = await r.json();
+        setCommits(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch commits", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCommits();
+  }, [fetchCommits]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-1">
+            System Evolution
+          </h2>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            AI-generated summaries of recent changes across all services
+          </p>
+        </div>
+        <button
+          onClick={fetchCommits}
+          disabled={loading}
+          className="p-2.5 rounded-xl border border-[var(--color-border)] hover:bg-white/5 disabled:opacity-50"
+        >
+          <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      {loading && commits.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-[var(--color-text-muted)]">
+          <Loader2 size={40} className="animate-spin mb-4 opacity-20" />
+          <p className="text-sm animate-pulse">Analyzing recent commits…</p>
+        </div>
+      ) : commits.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl border-dashed">
+          <GitBranch size={40} className="mb-4 text-[var(--color-text-muted)] opacity-20" />
+          <h3 className="text-sm font-semibold text-[var(--color-text-secondary)]">No commits detected yet</h3>
+          <p className="text-xs text-[var(--color-text-muted)] max-w-[250px] mt-2 leading-relaxed">
+            Configure a GitHub webhook to your endpoint to see automated summaries here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {commits.map((c, i) => (
+            <div
+              key={c.hash + i}
+              className="group bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-5 hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden"
+            >
+              {/* Service Tag */}
+              <div className="absolute top-0 right-0 px-4 py-1.5 bg-blue-500/10 border-b border-l border-blue-500/20 rounded-bl-xl text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+                {c.service}
+              </div>
+
+              <div className="flex gap-4">
+                <div className="hidden sm:flex flex-col items-center">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 font-bold">
+                    {c.author[0]}
+                  </div>
+                  <div className="w-0.5 flex-1 bg-gradient-to-b from-slate-700 to-transparent mt-2 rounded-full opacity-20" />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+                    <span className="text-sm font-bold text-[var(--color-text-primary)]">{c.author}</span>
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-mono bg-white/5 px-2 py-0.5 rounded uppercase">
+                      {c.hash.slice(0, 7)}
+                    </span>
+                    <span className="text-[10px] text-[var(--color-text-muted)]">
+                      {new Date(c.timestamp).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-blue-300/80 font-medium mb-3 bg-blue-500/5 border border-blue-500/10 rounded-lg px-3 py-2 leading-relaxed">
+                    <Sparkles size={12} className="inline mr-2 text-blue-400" />
+                    {c.summary}
+                  </p>
+
+                  <div className="flex items-start gap-2 text-xs text-[var(--color-text-secondary)]">
+                    <MessageSquare size={13} className="mt-0.5 flex-shrink-0 opacity-40" />
+                    <p className="italic opacity-80 truncate">{c.message}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-type Tab = "chat" | "ingest";
+type Tab = "chat" | "ingest" | "commits";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("chat");
@@ -744,6 +908,7 @@ export default function Home() {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "chat", label: "Q&A Chat", icon: <MessageSquare size={15} /> },
     { id: "ingest", label: "Ingest & Sync", icon: <Database size={15} /> },
+    { id: "commits", label: "Commit Logs", icon: <GitBranch size={15} /> },
   ];
 
   return (
@@ -777,8 +942,8 @@ export default function Home() {
                 id={`tab-${t.id}`}
                 onClick={() => setTab(t.id)}
                 className={`flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-lg transition-all ${tab === t.id
-                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm"
-                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                   }`}
               >
                 {t.icon}
@@ -835,7 +1000,7 @@ export default function Home() {
 
         {/* Tab content */}
         <div className="fade-in-up">
-          {tab === "chat" ? <ChatTab /> : <IngestTab />}
+          {tab === "chat" ? <ChatTab /> : tab === "ingest" ? <IngestTab /> : <CommitsTab />}
         </div>
       </main>
 
