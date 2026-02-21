@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Home() {
   const [repoUrl, setRepoUrl] = useState("");
@@ -67,6 +68,15 @@ export default function Home() {
             {status}
           </div>
         )}
+
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <Link
+            href="/graph"
+            className="flex items-center justify-center gap-2 w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors font-medium"
+          >
+            <span>🕸</span> View Knowledge Graph
+          </Link>
+        </div>
       </div>
     </main>
   );

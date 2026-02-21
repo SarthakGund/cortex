@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import ingestion, webhook
+from api import ingestion, webhook, graph
 
 app = FastAPI(
     title="SPIT - Intelligent Architecture & Knowledge Platform",
@@ -19,6 +19,7 @@ app.add_middleware(
 
 app.include_router(ingestion.router)
 app.include_router(webhook.router)
+app.include_router(graph.router)
 
 @app.get("/")
 async def root():

@@ -18,6 +18,25 @@ class IngestionService:
     def __init__(self):
         pass
 
+    def _get_git_metadata(self, repo_dir: str, file_path: str) -> dict:
+        """
+        Returns {"hash": <last commit hash>, "date": <ISO date>} for the given file
+        by running git log once with --follow.
+        Falls back to empty strings on any error.
+        """
+        try:
+            rel = os.path.relpath(file_path, repo_dir)
+            result = subprocess.run(
+                ["git", "-C", repo_dir, "log", "--follow", "--format=%H %aI", "-1", "--", rel],
+                capture_output=True, text=True, timeout=5
+            )
+            parts = result.stdout.strip().split(" ", 1)
+            if len(parts) == 2:
+                return {"hash": parts[0], "date": parts[1]}
+        except Exception:
+            pass
+        return {"hash": "", "date": ""}
+
     def _get_module_name(self, file_path: str, root_dir: str) -> str:
         """
         Derives the module name from the directory path relative to the repo root.
@@ -29,17 +48,23 @@ class IngestionService:
             return "root"
         return rel.replace(os.sep, ".")
 
-    def _ingest_python_file(self, service_name: str, file_path: str, module_name: str, code: str):
+    def _ingest_python_file(self, service_name: str, file_path: str, module_name: str,
+                              code: str, repo_dir: str = ""):
         """Processes a single Python file and creates all graph nodes for it."""
+        fname = os.path.basename(file_path)
 
-        # 1. File node
-        graph_service.create_file_node(service_name, module_name, file_path, language="python")
+        # Git metadata
+        git = self._get_git_metadata(repo_dir, file_path) if repo_dir else {"hash": "", "date": ""}
+
+        # 1. File node  (with git metadata)
+        graph_service.create_file_node(
+            service_name, module_name, file_path, language="python",
+            last_commit_hash=git["hash"], last_modified_date=git["date"]
+        )
 
         # 2. API Endpoints  (Flask/FastAPI decorators)
-        # Tree-sitter does the fast structural pass first
         raw_endpoints = python_parser.extract_endpoints(code)
-        # Gemini then validates and fills in anything Tree-sitter missed
-        endpoints = llm_service.validate_and_fix_endpoints(code, raw_endpoints, os.path.basename(file_path))
+        endpoints = llm_service.validate_and_fix_endpoints(code, raw_endpoints, fname)
         for ep in endpoints:
             graph_service.create_endpoint_node(
                 service_name, ep["path"], method=ep["method"], file_path=file_path
@@ -50,29 +75,61 @@ class IngestionService:
         schemas = {s["name"] for s in python_parser.extract_schemas(code)}
         for cls in python_parser.extract_classes(code):
             if cls["name"] in schemas:
-                # This class is a Pydantic / dataclass model -> Schema node
                 graph_service.create_schema_node(service_name, file_path, cls["name"], schema_type="pydantic")
                 print(f"  [Python] Schema    {cls['name']}")
             else:
-                graph_service.create_class_node(service_name, file_path, cls["name"], base_classes=cls["bases"])
+                graph_service.create_class_node(
+                    service_name, file_path, cls["name"], base_classes=cls["bases"]
+                )
                 print(f"  [Python] Class     {cls['name']}")
 
-        # 4. Functions  (top-level only — class methods are picked up via class_name=None)
-        for fn in python_parser.extract_functions(code):
+        # 4. Functions — with line_number, docstring, complexity_score
+        all_functions = python_parser.extract_functions(code)
+        func_names = {fn["name"] for fn in all_functions}
+        for fn in all_functions:
             graph_service.create_function_node(
-                service_name, file_path, fn["name"], is_async=fn["is_async"]
+                service_name, file_path, fn["name"],
+                is_async=fn["is_async"],
+                line_number=fn["line_number"],
+                docstring=fn["docstring"],
+                complexity_score=fn["complexity_score"]
             )
 
-        # 5. Import edges (inter-file dependencies)
+        # 5. Function CALLS edges (intra-file: only if callee is a known function here)
+        all_callees = python_parser.extract_function_calls(code)
+        for fn in all_functions:
+            for callee in all_callees:
+                if callee in func_names and callee != fn["name"]:
+                    graph_service.create_function_call_edge(fn["name"], file_path, callee)
+
+        # 6. DB operations  — attribute to file-level placeholder table
+        db_ops = python_parser.extract_db_operations(code)
+        if db_ops:
+            table_hint = f"{service_name}_db"
+            for fn in all_functions:
+                for op in db_ops:
+                    if op["operation"] == "write":
+                        graph_service.create_db_write_edge(fn["name"], file_path, table_hint)
+                    else:
+                        graph_service.create_db_read_edge(fn["name"], file_path, table_hint)
+
+        # 7. Import edges (inter-file dependencies)
         for imp in python_parser.extract_imports(code):
             graph_service.create_import_edge(file_path, imp)
 
-    def _ingest_ts_js_file(self, service_name: str, file_path: str, module_name: str, code: str, lang: str):
+    def _ingest_ts_js_file(self, service_name: str, file_path: str, module_name: str,
+                             code: str, lang: str, repo_dir: str = ""):
         """Processes a single TypeScript or JavaScript file."""
         fname = os.path.basename(file_path)
 
-        # 1. File node
-        graph_service.create_file_node(service_name, module_name, file_path, language=lang)
+        # Git metadata
+        git = self._get_git_metadata(repo_dir, file_path) if repo_dir else {"hash": "", "date": ""}
+
+        # 1. File node  (with git metadata)
+        graph_service.create_file_node(
+            service_name, module_name, file_path, language=lang,
+            last_commit_hash=git["hash"], last_modified_date=git["date"]
+        )
 
         # 2. API Endpoints  (Express-style calls)
         try:
@@ -94,11 +151,15 @@ class IngestionService:
         except Exception as e:
             print(f"  [WARN]   Classes skipped for {fname}: {e}")
 
-        # 4. Functions / arrow functions
+        # 4. Functions / arrow functions — with line_number
+        all_functions = []
         try:
-            for fn in typescript_parser.extract_functions(code, language=lang):
+            all_functions = typescript_parser.extract_functions(code, language=lang)
+            for fn in all_functions:
                 graph_service.create_function_node(
-                    service_name, file_path, fn["name"], is_async=fn["is_async"]
+                    service_name, file_path, fn["name"],
+                    is_async=fn["is_async"],
+                    line_number=fn.get("line_number", 0)
                 )
         except Exception as e:
             print(f"  [WARN]   Functions skipped for {fname}: {e}")
@@ -161,13 +222,13 @@ class IngestionService:
                             code = f.read()
 
                         if ext == ".py":
-                            self._ingest_python_file(service_name, file_path, module_name, code)
+                            self._ingest_python_file(service_name, file_path, module_name, code, repo_dir=temp_dir)
                             file_count += 1
                         elif ext in (".ts", ".tsx"):
-                            self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="ts")
+                            self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="ts", repo_dir=temp_dir)
                             file_count += 1
                         elif ext in (".js", ".jsx", ".mjs", ".cjs"):
-                            self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="js")
+                            self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="js", repo_dir=temp_dir)
                             file_count += 1
 
                     except Exception as e:
