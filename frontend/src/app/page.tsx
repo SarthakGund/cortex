@@ -23,7 +23,10 @@ import {
   Terminal,
   Info,
   X,
+  FolderOpen,
+  FileCode2,
 } from "lucide-react";
+import { FileTree, TreeNode } from "./components/FileTree";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -304,9 +307,9 @@ function IngestTab() {
   const handleIngest = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setStatus({ type: "info", text: "Cloning and ingesting repository…" });
+    setStatus({ type: "info", text: "Fetching repository from GitHub API and ingesting…" });
     try {
-      const r = await fetch(`${API}/ingest/`, {
+      const r = await fetch(`${API}/ingest/github`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ repo_url: repoUrl }),
@@ -394,7 +397,7 @@ function IngestTab() {
               Ingest Repository
             </h2>
             <p className="text-xs text-[var(--color-text-muted)]">
-              Clone a GitHub repo and build the Knowledge Graph in Neo4j
+              Fetch code from GitHub API and build the Knowledge Graph in Neo4j — no local clone needed
             </p>
           </div>
         </div>
@@ -734,9 +737,160 @@ function ChatTab() {
   );
 }
 
+// ── Tab: Repo Explorer ────────────────────────────────────────────────────────
+
+function ExplorerTab() {
+  const [repoUrl, setRepoUrl] = useState("");
+  const [branch, setBranch] = useState("main");
+  const [loading, setLoading] = useState(false);
+  const [tree, setTree] = useState<TreeNode[]>([]);
+  const [total, setTotal] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<TreeNode | null>(null);
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [fileLoading, setFileLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFetch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setTree([]);
+    setSelectedFile(null);
+    setFileContent(null);
+    try {
+      const r = await fetch(
+        `${API}/github/tree?repo_url=${encodeURIComponent(repoUrl)}&branch=${encodeURIComponent(branch)}`
+      );
+      if (!r.ok) {
+        const d = await r.json();
+        throw new Error(d.detail ?? `HTTP ${r.status}`);
+      }
+      const data = await r.json();
+      setTree(data.nested);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileClick = async (node: TreeNode) => {
+    setSelectedFile(node);
+    setFileContent(null);
+    setFileLoading(true);
+    try {
+      const r = await fetch(
+        `${API}/github/file?repo_url=${encodeURIComponent(repoUrl)}&file_path=${encodeURIComponent(node.path)}&branch=${encodeURIComponent(branch)}`
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      setFileContent(data.content);
+    } catch (err) {
+      setFileContent(`// Error loading file: ${err}`);
+    } finally {
+      setFileLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-1">Repo Explorer</h2>
+        <p className="text-sm text-[var(--color-text-muted)]">
+          Browse any GitHub repository's file structure and view source files — no local clone needed.
+        </p>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleFetch} className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <GitBranch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+          <input
+            type="url"
+            required
+            value={repoUrl}
+            onChange={(e) => setRepoUrl(e.target.value)}
+            placeholder="https://github.com/owner/repo"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] text-sm"
+          />
+        </div>
+        <input
+          value={branch}
+          onChange={(e) => setBranch(e.target.value)}
+          placeholder="Branch"
+          className="w-32 px-3 py-2.5 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] text-sm"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 transition-all shadow-lg shadow-blue-500/20"
+        >
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <FolderOpen size={14} />}
+          {loading ? "Loading…" : "Explore"}
+        </button>
+      </form>
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+          <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+          {error}
+        </div>
+      )}
+
+      {/* Tree + Viewer */}
+      {tree.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* File tree panel */}
+          <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
+              <span className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                {repoUrl.split("/").slice(-2).join("/")}
+              </span>
+              <span className="text-[10px] text-[var(--color-text-muted)]">{total} items</span>
+            </div>
+            <div className="overflow-y-auto p-2" style={{ maxHeight: "480px" }}>
+              <FileTree
+                nodes={tree}
+                onFileClick={handleFileClick}
+                selectedPath={selectedFile?.path}
+              />
+            </div>
+          </div>
+
+          {/* File content panel */}
+          <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)]">
+              <FileCode2 size={14} className="text-blue-400" />
+              <span className="text-xs font-semibold text-[var(--color-text-secondary)] truncate">
+                {selectedFile ? selectedFile.path : "Select a file"}
+              </span>
+              {fileLoading && <Loader2 size={12} className="animate-spin text-[var(--color-text-muted)] ml-auto" />}
+            </div>
+            <div className="flex-1 overflow-auto p-4" style={{ maxHeight: "480px" }}>
+              {!selectedFile && (
+                <p className="text-xs text-[var(--color-text-muted)] text-center mt-12">
+                  Click a file in the tree to view its contents
+                </p>
+              )}
+              {selectedFile && !fileLoading && fileContent !== null && (
+                <pre className="text-xs text-[var(--color-text-secondary)] font-mono leading-relaxed whitespace-pre-wrap break-words">
+                  {fileContent}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-type Tab = "chat" | "ingest";
+type Tab = "chat" | "ingest" | "explorer";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("chat");
@@ -744,6 +898,7 @@ export default function Home() {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "chat", label: "Q&A Chat", icon: <MessageSquare size={15} /> },
     { id: "ingest", label: "Ingest & Sync", icon: <Database size={15} /> },
+    { id: "explorer", label: "Repo Explorer", icon: <FolderOpen size={15} /> },
   ];
 
   return (
@@ -835,7 +990,9 @@ export default function Home() {
 
         {/* Tab content */}
         <div className="fade-in-up">
-          {tab === "chat" ? <ChatTab /> : <IngestTab />}
+          {tab === "chat" && <ChatTab />}
+          {tab === "ingest" && <IngestTab />}
+          {tab === "explorer" && <ExplorerTab />}
         </div>
       </main>
 

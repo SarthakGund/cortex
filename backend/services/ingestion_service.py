@@ -1,7 +1,9 @@
 from services.graph_service import graph_service
 from services.llm_service import llm_service
+from services.github_service import GitHubService
 from core.parsers.python_parser import python_parser
 from core.parsers.typescript_parser import typescript_parser
+from core.config import settings
 import os
 import tempfile
 import subprocess
@@ -176,5 +178,45 @@ class IngestionService:
         msg = f"Ingested {file_count} files from '{service_name}' into the Knowledge Graph."
         print(f"\n{msg}")
         return {"status": "success", "message": msg}
+
+    def ingest_from_github(self, repo_url: str, branch: str = "main"):
+        """
+        Ingest a GitHub repository via the GitHub API — no local clone needed.
+        Fetches every code file directly and parses it into the Knowledge Graph.
+        """
+        print(f"\nStarting GitHub API ingestion for {repo_url} (branch: {branch})")
+        service_name = repo_url.rstrip("/").replace(".git", "").split("/")[-1]
+
+        graph_service.create_service_node(
+            name=service_name,
+            description=f"Ingested via GitHub API from {repo_url}",
+            language="Mixed",
+        )
+
+        svc = GitHubService(token=settings.github_token)
+        file_count = 0
+
+        for file_path, ext, code in svc.iter_code_files(repo_url, branch):
+            # Derive a module name from the directory portion of the path
+            dir_part = "/".join(file_path.split("/")[:-1])
+            module_name = dir_part.replace("/", ".") if dir_part else "root"
+
+            graph_service.create_module_node(service_name, module_name)
+
+            try:
+                if ext == ".py":
+                    self._ingest_python_file(service_name, file_path, module_name, code)
+                elif ext in (".ts", ".tsx"):
+                    self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="ts")
+                elif ext in (".js", ".jsx", ".mjs", ".cjs"):
+                    self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="js")
+                file_count += 1
+            except Exception as e:
+                print(f"  [ERROR] {file_path}: {e}")
+
+        msg = f"GitHub ingestion complete: {file_count} files from '{service_name}'."
+        print(f"\n{msg}")
+        return {"status": "success", "message": msg}
+
 
 ingestion_service = IngestionService()
