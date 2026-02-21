@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     
     # LLM Settings
-    OPENAI_API_KEY: Optional[str] = None
+    # OPENAI_API_KEY: Optional[str] = None
+    google_api_key: Optional[str] = None
 
     class Config:
         env_file = ".env"
