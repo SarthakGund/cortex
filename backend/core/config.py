@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # LLM Settings
     OPENAI_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
+    google_api_key: Optional[str] = None
+
+    # GitHub API token (optional — increases rate limit from 60 to 5000 req/hr)
+    github_token: Optional[str] = None
 
     class Config:
         env_file = ".env"

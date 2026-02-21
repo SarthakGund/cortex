@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Query as QParam
+from fastapi.responses import PlainTextResponse
 from services.graph_service import graph_service
+import json
 
 router = APIRouter(prefix="/graph", tags=["Graph"])
 
@@ -170,3 +172,136 @@ def get_graph_stats():
             ORDER BY count DESC
         """)
         return {"stats": [{"label": r["label"], "count": r["count"]} for r in result]}
+
+
+@router.get("/export/csv")
+def export_graph_csv(
+    node_type: str | None = QParam(None, description="Filter by node label"),
+    service: str | None = QParam(None, description="Filter by service name"),
+):
+    """Export graph nodes as CSV."""
+    conditions = []
+    params: dict = {}
+    if node_type:
+        conditions.append(f"n:{node_type}")
+    if service:
+        conditions.append("n.service = $service")
+        params["service"] = service
+
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    query = f"MATCH (n) {where} RETURN n LIMIT 5000"
+
+    with graph_service.driver.session() as session:
+        result = session.run(query, **params)
+        lines = ["label,name,service,path,properties"]
+        for record in result:
+            node = record["n"]
+            lbl = list(node.labels)[0] if node.labels else ""
+            props = dict(node.items())
+            name = props.get("name", props.get("path", ""))
+            svc = props.get("service", "")
+            path = props.get("path", "")
+            props_json = json.dumps(props, default=str).replace('"', '""')
+            lines.append(f'{lbl},"{name}","{svc}","{path}","{props_json}"')
+
+    return PlainTextResponse(
+        content="\n".join(lines),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=graph_export.csv"},
+    )
+
+
+@router.get("/export/json")
+def export_graph_json(
+    node_type: str | None = QParam(None, description="Filter by node label"),
+    service: str | None = QParam(None, description="Filter by service name"),
+    include_edges: bool = QParam(True),
+):
+    """Export graph as JSON (nodes + optional edges)."""
+    conditions = []
+    params: dict = {}
+    if node_type:
+        conditions.append(f"n:{node_type}")
+    if service:
+        conditions.append("n.service = $service")
+        params["service"] = service
+
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+    with graph_service.driver.session() as session:
+        # Nodes
+        result = session.run(f"MATCH (n) {where} RETURN n LIMIT 5000", **params)
+        nodes = []
+        node_ids = set()
+        for record in result:
+            node = record["n"]
+            nid = str(node.element_id)
+            node_ids.add(nid)
+            nodes.append({
+                "id": nid,
+                "labels": list(node.labels),
+                "properties": {k: str(v) if not isinstance(v, (str, int, float, bool)) else v for k, v in dict(node.items()).items()},
+            })
+
+        edges = []
+        if include_edges and nodes:
+            edge_result = session.run(
+                f"MATCH (n)-[r]->(m) {where} RETURN n, r, m LIMIT 10000", **params
+            )
+            for rec in edge_result:
+                sid = str(rec["n"].element_id)
+                tid = str(rec["m"].element_id)
+                if sid in node_ids or tid in node_ids:
+                    edges.append({
+                        "source": sid,
+                        "target": tid,
+                        "type": rec["r"].type,
+                        "properties": dict(rec["r"].items()),
+                    })
+
+    return {"nodes": nodes, "edges": edges, "node_count": len(nodes), "edge_count": len(edges)}
+
+
+@router.get("/export/cypher")
+def export_graph_cypher(
+    node_type: str | None = QParam(None, description="Filter by node label"),
+    service: str | None = QParam(None, description="Filter by service name"),
+):
+    """Export graph as Cypher CREATE statements for reimport."""
+    conditions = []
+    params: dict = {}
+    if node_type:
+        conditions.append(f"n:{node_type}")
+    if service:
+        conditions.append("n.service = $service")
+        params["service"] = service
+
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+    with graph_service.driver.session() as session:
+        result = session.run(f"MATCH (n) {where} RETURN n LIMIT 5000", **params)
+        statements = []
+        id_map: dict[str, str] = {}
+        for i, record in enumerate(result):
+            node = record["n"]
+            nid = str(node.element_id)
+            var = f"n{i}"
+            id_map[nid] = var
+            label = list(node.labels)[0] if node.labels else "Node"
+            props = dict(node.items())
+            props_str = ", ".join(f'{k}: {json.dumps(str(v))}' for k, v in props.items())
+            statements.append(f"CREATE ({var}:{label} {{{props_str}}})")
+
+        edge_result = session.run(f"MATCH (n)-[r]->(m) {where} RETURN n, r, m LIMIT 10000", **params)
+        for rec in edge_result:
+            sid = str(rec["n"].element_id)
+            tid = str(rec["m"].element_id)
+            if sid in id_map and tid in id_map:
+                rel_type = rec["r"].type
+                statements.append(f"CREATE ({id_map[sid]})-[:{rel_type}]->({id_map[tid]})")
+
+    return PlainTextResponse(
+        content=";\n".join(statements) + ";\n" if statements else "// Empty graph",
+        media_type="text/plain",
+        headers={"Content-Disposition": "attachment; filename=graph_export.cypher"},
+    )

@@ -194,7 +194,7 @@ export default function GraphView({ nodes: rawNodes, edges: rawEdges, stats }: G
         <Background color="#1e293b" gap={24} />
         <Controls className="!bg-gray-900 !border-gray-700 !shadow-lg" />
         <MiniMap
-          nodeColor={n => (n.data as SpitNodeData).color ?? '#94a3b8'}
+          nodeColor={(n: Node<SpitNodeData>) => n.data.color ?? '#94a3b8'}
           maskColor="rgba(0,0,0,0.6)"
           className="!bg-gray-900 !border-gray-700"
         />
