@@ -11,3 +11,11 @@ psycopg2-binary==2.9.9
 celery==5.3.6
 redis==5.0.1
 python-dotenv==1.0.1
+# RAG / AI
+google-generativeai>=0.8.0
+sentence-transformers>=2.7.0
+chromadb>=0.5.0
+tree-sitter>=0.25.2
+tree-sitter-python>=0.25.0
+tree-sitter-typescript>=0.23.2
+tree-sitter-javascript>=0.23.0
