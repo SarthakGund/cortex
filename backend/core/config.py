@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     
     # LLM Settings
     OPENAI_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = None
 
     class Config:
         env_file = ".env"

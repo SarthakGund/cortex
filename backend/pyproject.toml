@@ -1,0 +1,31 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "SarthakGund", email = "your@email.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "celery==5.3.6",
+    "fastapi==0.109.2",
+    "langchain==0.1.5",
+    "langchain-openai==0.0.5",
+    "neo4j==5.17.0",
+    "psycopg2-binary==2.9.9",
+    "pydantic==2.6.1",
+    "pydantic-settings==2.1.0",
+    "python-dotenv==1.0.1",
+    "qdrant-client==1.7.3",
+    "redis==5.0.1",
+    "sqlalchemy==2.0.25",
+    "uvicorn==0.27.1",
+]
+
+[project.scripts]
+backend = "backend:main"
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
