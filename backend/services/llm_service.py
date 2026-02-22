@@ -1,5 +1,4 @@
 import json
-from google import genai
 from core.config import settings
 
 # Try to import Gemini, but don't fail if it's not available
@@ -13,19 +12,23 @@ except ImportError as e:
 
 class LLMService:
     def __init__(self):
+        self._client = None
+        self.model = None
+        self.enabled = False
+        
         if not GENAI_AVAILABLE:
             print("[LLM] google.generativeai not installed. LLM features disabled.")
-            self.enabled = False
-            self.model = None
         elif settings.GEMINI_API_KEY:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel("gemini-flash-latest")
-            self.enabled = True
+            try:
+                genai.configure(api_key=settings.GEMINI_API_KEY)
+                self.model = genai.GenerativeModel("gemini-flash-latest")
+                self._client = genai
+                self.enabled = True
+                print("[LLM] ✅ Gemini configured successfully")
+            except Exception as e:
+                print(f"[LLM] Failed to configure Gemini: {e}")
         else:
             print("[LLM] GEMINI_API_KEY not set. LLM validation disabled.")
-            self._client = None
-            self.enabled = False
-            self.model = None
 
     def validate_and_fix_endpoints(self, code: str, raw_endpoints: list, file_name: str) -> list:
         """
@@ -68,10 +71,7 @@ Source file: {file_name}
 JSON array:
 """
         try:
-            response = self._client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-            )
+            response = self.model.generate_content(prompt)
             text = response.text.strip()
 
             # Strip markdown code fences if Gemini wraps them anyway
