@@ -26,6 +26,7 @@ import {
   X,
   FolderOpen,
   FileCode2,
+  ShieldCheck,
 } from "lucide-react";
 import { FileTree, TreeNode } from "./components/FileTree";
 
@@ -1179,6 +1180,12 @@ export default function Home() {
                 className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
               >
                 <Activity size={10} /> Timeline
+              </Link>
+              <Link
+                href="/health"
+                className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 hover:bg-teal-500/20 transition-colors"
+              >
+                <ShieldCheck size={10} /> Health
               </Link>
             </div>
           </div>

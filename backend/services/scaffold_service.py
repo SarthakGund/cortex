@@ -24,7 +24,7 @@ import textwrap
 import zipfile
 from typing import Any, Optional
 
-import google.generativeai as genai
+from google import genai
 
 from core.config import settings
 from services.graph_service import graph_service
@@ -35,11 +35,12 @@ from services.github_service import GitHubService
 def _get_llm():
     if not settings.GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY not configured")
-    genai.configure(api_key=settings.GEMINI_API_KEY)
-    return genai.GenerativeModel(
-        "gemini-2.0-flash",
-        generation_config={"temperature": 0.1, "max_output_tokens": 8192},
-    )
+    return genai.Client(api_key=settings.GEMINI_API_KEY)
+
+_SCAFFOLD_CONFIG = genai.types.GenerateContentConfig(
+    temperature=0.1,
+    max_output_tokens=8192,
+)
 
 
 # ── Reference Architecture Extractor ─────────────────────────────────────────
@@ -213,7 +214,11 @@ Rules:
 - Output ONLY the JSON — no prose, no markdown fences, no explanations outside the JSON.
 """
 
-    response = llm.generate_content(prompt)
+    response = llm.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt,
+        config=_SCAFFOLD_CONFIG,
+    )
     raw = response.text.strip()
 
     # Strip markdown fences if the LLM wrapped it
@@ -271,7 +276,11 @@ Requirements:
 Output ONLY the source code — no markdown fences, no explanations.
 """
 
-    resp = llm.generate_content(prompt)
+    resp = llm.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt,
+        config=_SCAFFOLD_CONFIG,
+    )
     return resp.text.strip()
 
 

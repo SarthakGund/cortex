@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-import google.generativeai as genai
+from google import genai
 
 from core.config import settings
 from services.graph_service import graph_service
@@ -24,11 +24,12 @@ from services.graph_service import graph_service
 def _get_llm():
     if not settings.GEMINI_API_KEY:
         return None
-    genai.configure(api_key=settings.GEMINI_API_KEY)
-    return genai.GenerativeModel(
-        "gemini-2.0-flash",
-        generation_config={"temperature": 0.1, "max_output_tokens": 2048},
-    )
+    return genai.Client(api_key=settings.GEMINI_API_KEY)
+
+_IMPACT_CONFIG = genai.types.GenerateContentConfig(
+    temperature=0.1,
+    max_output_tokens=2048,
+)
 
 
 # ── Blast Radius ─────────────────────────────────────────────────────────────
@@ -280,7 +281,11 @@ Format as JSON:
 Output ONLY the JSON."""
 
     try:
-        response = llm.generate_content(prompt)
+        response = llm.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+            config=_IMPACT_CONFIG,
+        )
         raw = response.text.strip()
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
