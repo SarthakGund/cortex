@@ -129,7 +129,7 @@ function severityBadge(severity: GapNode["severity"]) {
   switch (severity) {
     case "critical": return "bg-red-500/15 text-red-400 border border-red-500/25";
     case "moderate": return "bg-amber-500/15 text-amber-400 border border-amber-500/25";
-    default:         return "bg-slate-500/15 text-slate-400 border border-slate-500/25";
+    default:         return "bg-slate-500/15 text-slate-600 border border-slate-500/25";
   }
 }
 
@@ -137,7 +137,7 @@ function coverageBar(pct: number) {
   const color =
     pct >= 75 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-500" : "bg-red-500";
   return (
-    <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+    <div className="w-full h-1.5 rounded-full bg-black/5 overflow-hidden">
       <div
         className={`h-full rounded-full transition-all ${color}`}
         style={{ width: `${pct}%` }}
@@ -158,7 +158,7 @@ function NodeTypePill({ type }: { type: string }) {
     Documentation: "bg-green-500/15 text-green-400",
   };
   return (
-    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${colors[type] ?? "bg-slate-500/15 text-slate-400"}`}>
+    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${colors[type] ?? "bg-slate-500/15 text-slate-600"}`}>
       {type}
     </span>
   );
@@ -242,7 +242,7 @@ function Section({
           {icon}
           {title}
           {count !== undefined && (
-            <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-[var(--color-text-muted)]">
+            <span className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-black/10 text-[var(--color-text-muted)]">
               {count}
             </span>
           )}
@@ -384,7 +384,7 @@ export default function HealthPage() {
             <div className="w-px h-4 bg-[var(--color-border)]" />
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <ShieldCheck size={14} className="text-white" />
+                <ShieldCheck size={14} className="text-slate-900" />
               </div>
               <div>
                 <h1 className="text-sm font-bold leading-none">System Knowledge Health</h1>
@@ -435,7 +435,7 @@ export default function HealthPage() {
             {/* Hero row: score + stat cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Score card */}
-              <div
+              {/* <div
                 className={`lg:col-span-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6 flex flex-col items-center gap-2 shadow-xl ${scoreGlow(score?.grade ?? "D")}`}
               >
                 <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] mb-1">
@@ -454,7 +454,7 @@ export default function HealthPage() {
                   ].map(({ label, value, invert }) => (
                     <div key={label} className="flex items-center gap-2">
                       <span className="text-[var(--color-text-muted)] w-28 shrink-0">{label}</span>
-                      <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                      <div className="flex-1 h-1.5 rounded-full bg-black/5 overflow-hidden">
                         <div
                           className={`h-full rounded-full ${invert ? "bg-red-500" : "bg-emerald-500"}`}
                           style={{ width: `${Math.min(value, 100)}%` }}
@@ -463,11 +463,11 @@ export default function HealthPage() {
                       <span className="text-[var(--color-text-muted)] w-8 text-right">{value}%</span>
                     </div>
                   ))}
-                </div>
-              </div>
+                // </div> */}
+              {/* </div> */}
 
               {/* Stat cards grid */}
-              <div className="lg:col-span-3 grid grid-cols-2 gap-4">
+              {/* <div className="lg:col-span-3 grid grid-cols-2 gap-4">
                 <StatCard
                   icon={<BookOpen size={13} />}
                   label="Doc Coverage"
@@ -496,7 +496,7 @@ export default function HealthPage() {
                   sub="not linked to anything"
                   accent="border-slate-500/20"
                 />
-              </div>
+              </div> */}
             </div>
 
             {/* Documentation Coverage by type */}
@@ -595,7 +595,7 @@ export default function HealthPage() {
                               </span>
                               <button
                                 onClick={() => copyToClipboard(docSuggestions[key], key)}
-                                className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] transition-colors"
+                                className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-black/5 hover:bg-black/10 text-[var(--color-text-muted)] transition-colors"
                               >
                                 {copied === key ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
                                 {copied === key ? "Copied!" : "Copy"}
@@ -674,7 +674,7 @@ export default function HealthPage() {
                               </span>
                               <button
                                 onClick={() => copyToClipboard(docUpdates[key], key)}
-                                className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] transition-colors"
+                                className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-black/5 hover:bg-black/10 text-[var(--color-text-muted)] transition-colors"
                               >
                                 {copied === key ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
                                 {copied === key ? "Copied!" : "Copy"}
@@ -732,7 +732,7 @@ export default function HealthPage() {
                         <Network size={10} className="text-indigo-400 shrink-0" />
                         <span className="text-xs font-mono flex-1 truncate text-[var(--color-text-primary)]">{s.name}</span>
                         {s.language && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-[var(--color-text-muted)]">{s.language}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/5 text-[var(--color-text-muted)]">{s.language}</span>
                         )}
                         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
                           s.gap_type === "no_description"

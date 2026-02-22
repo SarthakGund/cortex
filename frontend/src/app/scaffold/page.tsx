@@ -67,32 +67,32 @@ interface GenerateResponse {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const LANG_COLORS: Record<string, string> = {
-  python: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  typescript: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-  go: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-  java: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+  python: "bg-blue-100 text-blue-700 border-blue-200",
+  typescript: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  go: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  java: "bg-orange-100 text-orange-700 border-orange-200",
 };
 
 const DB_COLORS: Record<string, string> = {
-  postgres: "text-blue-300",
-  mongodb: "text-green-300",
-  redis: "text-red-300",
-  mysql: "text-orange-300",
+  postgres: "text-blue-700",
+  mongodb: "text-green-700",
+  redis: "text-red-700",
+  mysql: "text-orange-700",
   none: "text-slate-500",
 };
 
 const PROTO_COLORS: Record<string, string> = {
-  REST: "bg-emerald-500/20 text-emerald-300",
-  gRPC: "bg-purple-500/20 text-purple-300",
-  events: "bg-amber-500/20 text-amber-300",
+  REST: "bg-emerald-100 text-emerald-700",
+  gRPC: "bg-purple-100 text-purple-700",
+  events: "bg-amber-100 text-amber-700",
 };
 
 const METHOD_COLORS: Record<string, string> = {
-  GET: "text-emerald-400",
-  POST: "text-blue-400",
-  PUT: "text-amber-400",
-  DELETE: "text-red-400",
-  PATCH: "text-purple-400",
+  GET: "text-emerald-600",
+  POST: "text-blue-600",
+  PUT: "text-amber-600",
+  DELETE: "text-red-600",
+  PATCH: "text-purple-600",
 };
 
 function fileIcon(path: string) {
@@ -124,36 +124,36 @@ function downloadBase64Zip(base64: string, filename: string) {
 function ServiceCard({ svc }: { svc: ServiceBlueprint }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl overflow-hidden">
+    <div className="bg-slate-100/60 border border-slate-300/50 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-700/30 transition-colors"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-200/30 transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
             <Server size={16} className="text-indigo-400" />
           </div>
           <div>
-            <div className="font-mono font-semibold text-white text-sm">{svc.name}</div>
-            <div className="text-xs text-slate-400 mt-0.5">{svc.role}</div>
+            <div className="font-mono font-semibold text-slate-900 text-sm">{svc.name}</div>
+            <div className="text-xs text-slate-600 mt-0.5">{svc.role}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-xs px-2 py-0.5 rounded border ${LANG_COLORS[svc.language] ?? "bg-slate-600/20 text-slate-300"}`}>
+          <span className={`text-xs px-2 py-0.5 rounded border ${LANG_COLORS[svc.language] ?? "bg-slate-300/20 text-slate-700"}`}>
             {svc.framework}
           </span>
           <span className="text-xs text-slate-500">:{svc.port}</span>
-          {open ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />}
+          {open ? <ChevronDown size={14} className="text-slate-600" /> : <ChevronRight size={14} className="text-slate-600" />}
         </div>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 space-y-3 border-t border-slate-700/50 pt-3">
+        <div className="px-4 pb-4 space-y-3 border-t border-slate-300/50 pt-3">
           {/* Database */}
           <div className="flex items-center gap-2 text-xs">
-            <Database size={12} className="text-slate-400" />
-            <span className="text-slate-400">Database:</span>
-            <span className={DB_COLORS[svc.database?.type] ?? "text-slate-300"}>
+            <Database size={12} className="text-slate-600" />
+            <span className="text-slate-600">Database:</span>
+            <span className={DB_COLORS[svc.database?.type] ?? "text-slate-700"}>
               {svc.database?.type ?? "none"} {svc.database?.name ? `(${svc.database.name})` : ""}
             </span>
           </div>
@@ -161,16 +161,16 @@ function ServiceCard({ svc }: { svc: ServiceBlueprint }) {
           {/* Endpoints */}
           {svc.endpoints.length > 0 && (
             <div>
-              <div className="text-xs text-slate-400 mb-1.5 flex items-center gap-1">
+              <div className="text-xs text-slate-600 mb-1.5 flex items-center gap-1">
                 <Globe size={11} /> Endpoints
               </div>
               <div className="space-y-1">
                 {svc.endpoints.map((ep, i) => (
                   <div key={i} className="flex items-start gap-2 text-xs font-mono">
-                    <span className={`w-16 flex-shrink-0 font-bold ${METHOD_COLORS[ep.method] ?? "text-slate-300"}`}>
+                    <span className={`w-16 flex-shrink-0 font-bold ${METHOD_COLORS[ep.method] ?? "text-slate-700"}`}>
                       {ep.method}
                     </span>
-                    <span className="text-slate-300">{ep.path}</span>
+                    <span className="text-slate-700">{ep.path}</span>
                     {ep.description && <span className="text-slate-500 ml-1">{ep.description}</span>}
                   </div>
                 ))}
@@ -181,12 +181,12 @@ function ServiceCard({ svc }: { svc: ServiceBlueprint }) {
           {/* Communicates with */}
           {svc.communicates_with.length > 0 && (
             <div>
-              <div className="text-xs text-slate-400 mb-1.5 flex items-center gap-1">
+              <div className="text-xs text-slate-600 mb-1.5 flex items-center gap-1">
                 <Network size={11} /> Communicates with
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {svc.communicates_with.map((c, i) => (
-                  <span key={i} className={`text-xs px-2 py-0.5 rounded-full ${PROTO_COLORS[c.protocol] ?? "bg-slate-600/20 text-slate-300"}`}>
+                  <span key={i} className={`text-xs px-2 py-0.5 rounded-full ${PROTO_COLORS[c.protocol] ?? "bg-slate-300/20 text-slate-700"}`}>
                     {c.service} <span className="opacity-60">via {c.protocol}</span>
                   </span>
                 ))}
@@ -198,7 +198,7 @@ function ServiceCard({ svc }: { svc: ServiceBlueprint }) {
           {svc.env_vars.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {svc.env_vars.map((v) => (
-                <span key={v} className="text-xs font-mono bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded">
+                <span key={v} className="text-xs font-mono bg-white text-slate-600 px-1.5 py-0.5 rounded">
                   {v}
                 </span>
               ))}
@@ -207,7 +207,7 @@ function ServiceCard({ svc }: { svc: ServiceBlueprint }) {
 
           {/* Responsibilities */}
           {svc.responsibilities?.length > 0 && (
-            <ul className="text-xs text-slate-400 space-y-0.5 list-disc list-inside">
+            <ul className="text-xs text-slate-600 space-y-0.5 list-disc list-inside">
               {svc.responsibilities.map((r, i) => <li key={i}>{r}</li>)}
             </ul>
           )}
@@ -239,7 +239,7 @@ function FileTree({ files, onSelect, selected }: {
           {group !== "__root__" && (
             <button
               onClick={() => setCollapsed((c) => ({ ...c, [group]: !c[group] }))}
-              className="flex items-center gap-1 text-slate-400 hover:text-white w-full text-left py-1 px-2 rounded hover:bg-slate-700/40 transition-colors"
+              className="flex items-center gap-1 text-slate-600 hover:text-slate-900 w-full text-left py-1 px-2 rounded hover:bg-slate-200/40 transition-colors"
             >
               {collapsed[group] ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
               📁 <span className="font-semibold">{group}/</span>
@@ -253,7 +253,7 @@ function FileTree({ files, onSelect, selected }: {
                 key={f.path}
                 onClick={() => onSelect(f)}
                 className={`w-full text-left py-1 px-2 pl-${group !== "__root__" ? "6" : "2"} rounded flex items-center gap-2 transition-colors ${
-                  active ? "bg-indigo-500/20 text-white" : "text-slate-400 hover:text-white hover:bg-slate-700/30"
+                  active ? "bg-indigo-500/20 text-slate-900" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/30"
                 }`}
               >
                 <span>{fileIcon(f.path)}</span>
@@ -348,19 +348,19 @@ export default function ScaffoldPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <div className="border-b border-slate-800 bg-[#0d1526]">
+      <div className="border-b border-slate-200 bg-white">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
+            <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors text-sm">
               <ArrowLeft size={16} />
               Back
             </Link>
-            <div className="w-px h-4 bg-slate-700" />
+            <div className="w-px h-4 bg-slate-200" />
             <div className="flex items-center gap-2">
               <Sparkles size={18} className="text-amber-400" />
-              <span className="font-semibold text-white">Architecture Scaffolding Agent</span>
+              <span className="font-semibold text-slate-900">Architecture Scaffolding Agent</span>
             </div>
           </div>
 
@@ -372,16 +372,16 @@ export default function ScaffoldPage() {
               { key: "scaffold", label: "Scaffold" },
             ].map((s, i) => (
               <div key={s.key} className="flex items-center gap-2">
-                {i > 0 && <div className="w-6 h-px bg-slate-700" />}
+                {i > 0 && <div className="w-6 h-px bg-slate-200" />}
                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
                   step === s.key
                     ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
                     : (["blueprint", "scaffold"].indexOf(step) > i - 1
-                      ? "text-slate-400"
+                      ? "text-slate-600"
                       : "text-slate-600")
                 }`}>
                   <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    step === s.key ? "bg-indigo-500 text-white" : "bg-slate-700 text-slate-400"
+                    step === s.key ? "bg-indigo-500 text-slate-900" : "bg-slate-200 text-slate-600"
                   }`}>{i + 1}</span>
                   {s.label}
                 </div>
@@ -406,7 +406,7 @@ export default function ScaffoldPage() {
               <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
                 Describe Your System
               </h1>
-              <p className="text-slate-400">
+              <p className="text-slate-600">
                 The Staff Engineer Agent will design your microservices architecture, then generate
                 production-ready code, Docker, and Kubernetes files.
               </p>
@@ -418,19 +418,19 @@ export default function ScaffoldPage() {
                 onChange={(e) => setRequirements(e.target.value)}
                 placeholder="Describe your system in natural language…&#10;&#10;e.g. An e-commerce platform with user authentication, product catalog, order management, payments via Stripe, and email notifications. The catalog should be search-heavy. Orders need to trigger email + SMS. Use event-driven communication where possible."
                 rows={8}
-                className="w-full bg-slate-800/60 border border-slate-700 rounded-xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 resize-none font-mono transition-colors"
+                className="w-full bg-slate-100/60 border border-slate-300 rounded-xl p-4 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 resize-none font-mono transition-colors"
               />
 
               {/* Reference service */}
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5">
+                <label className="block text-xs text-slate-600 mb-1.5">
                   Reference service from knowledge graph <span className="text-slate-600">(optional)</span>
                 </label>
                 <input
                   value={referenceService}
                   onChange={(e) => setReferenceService(e.target.value)}
                   placeholder="e.g. auth-service (name of a previously ingested service)"
-                  className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full bg-slate-100/60 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
                 />
                 <p className="text-xs text-slate-600 mt-1">
                   If provided, the agent will analyse its architecture pattern from the knowledge graph and use it as a template.
@@ -439,14 +439,14 @@ export default function ScaffoldPage() {
 
               {/* Reference GitHub repo */}
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5">
+                <label className="block text-xs text-slate-600 mb-1.5">
                   Reference GitHub repo <span className="text-slate-600">(optional)</span>
                 </label>
                 <input
                   value={referenceRepoUrl}
                   onChange={(e) => setReferenceRepoUrl(e.target.value)}
                   placeholder="e.g. https://github.com/org/repo"
-                  className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full bg-slate-100/60 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
                 />
                 <p className="text-xs text-slate-600 mt-1">
                   The agent will fetch this repo&apos;s file structure and use it as a naming and layout template.
@@ -474,7 +474,7 @@ export default function ScaffoldPage() {
                   <button
                     key={i}
                     onClick={() => setRequirements(ex)}
-                    className="w-full text-left text-xs text-slate-400 hover:text-white bg-slate-800/40 hover:bg-slate-700/40 border border-slate-700/50 rounded-lg px-3 py-2 transition-colors"
+                    className="w-full text-left text-xs text-slate-600 hover:text-slate-900 bg-slate-100/40 hover:bg-slate-200/40 border border-slate-300/50 rounded-lg px-3 py-2 transition-colors"
                   >
                     {ex}
                   </button>
@@ -490,20 +490,20 @@ export default function ScaffoldPage() {
             {/* Header */}
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-white">{blueprint.system_name}</h1>
-                <p className="text-slate-400 mt-1 text-sm max-w-2xl">{blueprint.summary}</p>
+                <h1 className="text-2xl font-bold text-slate-900">{blueprint.system_name}</h1>
+                <p className="text-slate-600 mt-1 text-sm max-w-2xl">{blueprint.summary}</p>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setStep("input")}
-                  className="px-4 py-2 rounded-lg text-sm border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm border border-slate-300 text-slate-600 hover:text-slate-900 hover:border-slate-500 transition-colors"
                 >
                   Redesign
                 </button>
                 <button
                   onClick={handleGenerate}
                   disabled={generating}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white disabled:opacity-50 transition-all shadow-lg shadow-emerald-500/20"
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-900 disabled:opacity-50 transition-all shadow-lg shadow-emerald-500/20"
                 >
                   {generating ? (
                     <><Loader2 size={14} className="animate-spin" /> Generating…</>
@@ -522,11 +522,11 @@ export default function ScaffoldPage() {
                 { icon: <Database size={16} className="text-blue-400" />, label: "Databases", value: new Set(blueprint.services.filter(s => s.database?.type !== "none").map(s => s.database.name)).size },
                 { icon: <Zap size={16} className="text-amber-400" />, label: "API Gateway", value: `${blueprint.api_gateway.type}:${blueprint.api_gateway.port}` },
               ].map((c, i) => (
-                <div key={i} className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 flex items-center gap-3">
+                <div key={i} className="bg-slate-100/60 border border-slate-300/50 rounded-xl p-4 flex items-center gap-3">
                   {c.icon}
                   <div>
-                    <div className="text-xs text-slate-400">{c.label}</div>
-                    <div className="font-bold text-white text-sm">{c.value}</div>
+                    <div className="text-xs text-slate-600">{c.label}</div>
+                    <div className="font-bold text-slate-900 text-sm">{c.value}</div>
                   </div>
                 </div>
               ))}
@@ -534,7 +534,7 @@ export default function ScaffoldPage() {
 
             {/* Services */}
             <div>
-              <h2 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                 <Server size={14} className="text-indigo-400" /> Services
               </h2>
               <div className="grid sm:grid-cols-2 gap-3">
@@ -543,27 +543,27 @@ export default function ScaffoldPage() {
             </div>
 
             {/* Rationale */}
-            <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+            <div className="bg-slate-100/40 border border-slate-300/50 rounded-xl p-5">
+              <h2 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                 <Sparkles size={14} className="text-amber-400" /> Design Rationale
               </h2>
-              <p className="text-sm text-slate-300 leading-relaxed">{blueprint.rationale}</p>
+              <p className="text-sm text-slate-700 leading-relaxed">{blueprint.rationale}</p>
             </div>
 
             {/* Global decisions */}
             {blueprint.global_decisions && (
-              <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-                <h2 className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+              <div className="bg-slate-100/40 border border-slate-300/50 rounded-xl p-5">
+                <h2 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                   <GitBranch size={14} className="text-purple-400" /> Cross-Cutting Concerns
                 </h2>
-                <p className="text-sm text-slate-300 leading-relaxed">{blueprint.global_decisions}</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{blueprint.global_decisions}</p>
               </div>
             )}
 
             {/* Message queues */}
             {blueprint.message_queues?.length > 0 && (
-              <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-                <h2 className="text-sm font-semibold text-slate-300 mb-2">Message Queues</h2>
+              <div className="bg-slate-100/40 border border-slate-300/50 rounded-xl p-5">
+                <h2 className="text-sm font-semibold text-slate-700 mb-2">Message Queues</h2>
                 <div className="flex flex-wrap gap-2">
                   {blueprint.message_queues.map((q) => (
                     <div key={q.name} className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-3 py-1 rounded-full">
@@ -584,22 +584,22 @@ export default function ScaffoldPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <CheckCircle2 size={18} className="text-emerald-400" />
-                  <h1 className="text-xl font-bold text-white">Scaffold Ready</h1>
+                  <h1 className="text-xl font-bold text-slate-900">Scaffold Ready</h1>
                 </div>
-                <p className="text-slate-400 text-sm">
-                  {scaffold.file_count} files generated for <span className="font-mono text-white">{scaffold.system_name}</span>
+                <p className="text-slate-600 text-sm">
+                  {scaffold.file_count} files generated for <span className="font-mono text-slate-900">{scaffold.system_name}</span>
                 </p>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setStep("blueprint")}
-                  className="px-4 py-2 rounded-lg text-sm border border-slate-700 text-slate-400 hover:text-white transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm border border-slate-300 text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   Back to Blueprint
                 </button>
                 <button
                   onClick={handleDownload}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white transition-all shadow-lg shadow-indigo-500/20"
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-slate-900 transition-all shadow-lg shadow-indigo-500/20"
                 >
                   <Download size={14} />
                   Download .zip
@@ -610,7 +610,7 @@ export default function ScaffoldPage() {
             {/* File browser */}
             <div className="grid grid-cols-12 gap-4" style={{ height: "calc(100vh - 260px)" }}>
               {/* File tree panel */}
-              <div className="col-span-3 bg-slate-800/60 border border-slate-700/50 rounded-xl p-3 overflow-y-auto">
+              <div className="col-span-3 bg-slate-100/60 border border-slate-300/50 rounded-xl p-3 overflow-y-auto">
                 <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3 px-2">
                   Project Files
                 </div>
@@ -622,16 +622,16 @@ export default function ScaffoldPage() {
               </div>
 
               {/* File viewer */}
-              <div className="col-span-9 bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden flex flex-col">
+              <div className="col-span-9 bg-white border border-slate-300/50 rounded-xl overflow-hidden flex flex-col">
                 {selectedFile ? (
                   <>
-                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-800 bg-slate-800/60">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-200 bg-slate-100/60">
                       <span className="text-sm">{fileIcon(selectedFile.path)}</span>
-                      <span className="font-mono text-sm text-slate-300">{selectedFile.path}</span>
+                      <span className="font-mono text-sm text-slate-700">{selectedFile.path}</span>
                       <span className="ml-auto text-xs text-slate-500">{selectedFile.size} bytes</span>
                     </div>
                     <div className="flex-1 overflow-auto p-4">
-                      <pre className="text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap">
+                      <pre className="text-xs text-slate-700 font-mono leading-relaxed whitespace-pre-wrap">
                         {selectedFile.content}
                       </pre>
                     </div>
@@ -660,9 +660,9 @@ export default function ScaffoldPage() {
                 ).length;
                 if (!count) return null;
                 return (
-                  <div key={t.label} className="bg-slate-800/40 border border-slate-700/40 rounded-lg p-2.5 text-center">
+                  <div key={t.label} className="bg-slate-100/40 border border-slate-300/40 rounded-lg p-2.5 text-center">
                     <div className="text-xl mb-0.5">{t.icon}</div>
-                    <div className="text-white font-bold text-sm">{count}</div>
+                    <div className="text-slate-900 font-bold text-sm">{count}</div>
                     <div className="text-slate-500 text-xs">{t.label}</div>
                   </div>
                 );
