@@ -1,6 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 from services.ingestion_service import ingestion_service
+from services.commit_service import commit_service
 import hmac
 import hashlib
 import os
@@ -10,9 +11,11 @@ router = APIRouter(prefix="/webhook", tags=["Webhook"])
 # Optionally, set a secret for GitHub/GitLab webhook signature verification
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET")
 
+from typing import Optional
+
 class WebhookPayload(BaseModel):
     repository: dict
-    ref: str = None  # e.g. 'refs/heads/main'
+    ref: Optional[str] = None  # e.g. 'refs/heads/main'
     # Add more fields as needed for your VCS
 
 @router.post("/")
@@ -39,6 +42,11 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
     if "repository" in payload:
         repo_url = payload["repository"].get("clone_url") or payload["repository"].get("git_http_url")
         branch = payload.get("ref", "refs/heads/main").split("/")[-1]
+        
+        # Summarize commits if this is a push event
+        commits = payload.get("commits", [])
+        for commit in commits:
+            commit_service.summarize_commit(repo_url, commit)
     # Add more VCS logic as needed
 
     if not repo_url:
@@ -46,4 +54,9 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
 
     # Trigger background ingestion
     background_tasks.add_task(ingestion_service.ingest_repository, repo_url)
-    return {"status": "processing", "message": f"Ingestion triggered for {repo_url} (branch: {branch})"}
+    return {"status": "processing", "message": f"Ingestion triggered and commits summarized for {repo_url} (branch: {branch})"}
+
+@router.get("/commits")
+async def get_recent_commits(limit: int = 20):
+    """Retrieve recent commit summaries with AI analysis."""
+    return commit_service.get_recent_summaries(limit=limit)

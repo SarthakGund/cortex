@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from api import ingestion, webhook, rag, auth
 from api import ingestion
 from api import github, webhook, rag, scaffold, graph, impact, events
 
@@ -22,6 +23,7 @@ app.include_router(ingestion.router)
 app.include_router(github.router)
 app.include_router(webhook.router)
 app.include_router(rag.router)
+app.include_router(auth.router)
 app.include_router(scaffold.router)
 app.include_router(graph.router)
 app.include_router(impact.router)
