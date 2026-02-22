@@ -1452,13 +1452,13 @@ export default function Home() {
   const tabs: { id?: Tab; href?: string; label: string; icon: React.ReactNode }[] = [
     { id: "ingest", label: "Ingest & Sync", icon: <Database size={15} /> },
     { id: "chat", label: "Q&A Chat", icon: <MessageSquare size={15} /> },
-    { id: "commits", label: "Commit Logs", icon: <GitBranch size={15} /> },
-    { id: "explorer", label: "Repo Explorer", icon: <FolderOpen size={15} /> },
-    { href: "/search", label: "Search", icon: <Search size={15} /> },
     { href: "/scaffold", label: "Scaffold", icon: <Sparkles size={15} /> },
     { href: "/impact", label: "What-If", icon: <AlertCircle size={15} /> },
     { href: "/timeline", label: "Timeline", icon: <Activity size={15} /> },
     { href: "/health", label: "Health", icon: <ShieldCheck size={15} /> },
+    { href: "/search", label: "Search", icon: <Search size={15} /> },
+    { id: "commits", label: "Commit Logs", icon: <GitBranch size={15} /> },
+    { id: "explorer", label: "Repo Explorer", icon: <FolderOpen size={15} /> },
   ];
 
   return (
