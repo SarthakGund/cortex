@@ -28,6 +28,6 @@ def get_db():
 
 def init_db():
     """Initialize database tables."""
-    from core.models import Commit  # Import models here to avoid circular imports
+    from core.models import Commit, GraphSnapshot  # Import models here to avoid circular imports
     Base.metadata.create_all(bind=engine)
     print(f"[Database] ✅ Tables initialized")
