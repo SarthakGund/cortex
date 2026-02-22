@@ -9,6 +9,7 @@ import os
 import tempfile
 import subprocess
 import hashlib
+import traceback
 
 # File extensions we skip entirely (binary, lockfiles, configs)
 SKIP_EXTENSIONS = {
@@ -386,6 +387,20 @@ class IngestionService:
         if incremental and skipped_count > 0:
             msg += f" ({skipped_count} unchanged files skipped.)"
         print(f"\n{msg}")
+
+        # Auto-sync to RAG vector store after successful ingestion
+        try:
+            print("[Ingestion] Starting RAG auto-sync...")
+            from services.rag_service import rag_service
+            print(f"[Ingestion] rag_service imported: {rag_service}")
+            print(f"[Ingestion] Calling sync_graph_to_vector_store()...")
+            rag_result = rag_service.sync_graph_to_vector_store()
+            print(f"[Ingestion] RAG sync result: {rag_result}")
+            print(f"[Ingestion] RAG sync complete: {rag_result.get('document_count', '?')} docs indexed")
+        except Exception as rag_err:
+            print(f"[Ingestion] RAG auto-sync FAILED: {type(rag_err).__name__}: {rag_err}")
+            traceback.print_exc()
+
         return {"status": "success", "message": msg, "files_processed": file_count, "files_skipped": skipped_count}
 
     def ingest_multiple_repos(self, repos: list[dict]) -> dict:
@@ -408,6 +423,19 @@ class IngestionService:
         # After ingesting all repos, attempt to discover cross-repo dependencies
         # by looking for import references that match other service module names
         cross_links = self._discover_cross_repo_deps(service_names)
+
+        # Auto-sync to RAG vector store once all repos are ingested
+        try:
+            print("[Multi-repo] Starting RAG auto-sync...")
+            from services.rag_service import rag_service
+            print(f"[Multi-repo] rag_service imported: {rag_service}")
+            print(f"[Multi-repo] Calling sync_graph_to_vector_store()...")
+            rag_result = rag_service.sync_graph_to_vector_store()
+            print(f"[Multi-repo] RAG sync result: {rag_result}")
+            print(f"[Multi-repo] RAG sync complete: {rag_result.get('document_count', '?')} docs indexed")
+        except Exception as rag_err:
+            print(f"[Multi-repo] RAG auto-sync FAILED: {type(rag_err).__name__}: {rag_err}")
+            traceback.print_exc()
 
         return {
             "status": "success",

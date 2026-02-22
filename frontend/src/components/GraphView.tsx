@@ -301,7 +301,7 @@ function NodeSidebar({
         </div>
         <button
           onClick={onClose}
-          className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-600 hover:text-white hover:bg-white/10 transition-colors ml-2"
+          className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-600 hover:text-slate-900 hover:bg-black/10 transition-colors ml-2"
         >
           <X size={13} />
         </button>
@@ -318,7 +318,7 @@ function NodeSidebar({
               {Object.entries(props).map(([k, v]) => (
                 <div key={k} className="flex gap-2 items-start">
                   <span className="text-gray-600 w-24 flex-shrink-0 truncate pt-0.5 font-mono">{k}</span>
-                  <span className="text-gray-400 break-all">{formatPropValue(v)}</span>
+                  <span className="text-gray-600 break-all">{formatPropValue(v)}</span>
                 </div>
               ))}
             </div>
@@ -611,13 +611,13 @@ export default function GraphView({ nodes: rawNodes, edges: rawEdges, stats }: G
           size={1.2}
         />
         <Controls
-          className="!bg-gray-900/80 !border-white/5 !shadow-2xl !rounded-2xl overflow-hidden"
+          className="!bg-white/80 !border-black/5 !shadow-2xl !rounded-2xl overflow-hidden"
           style={{ backdropFilter: 'blur(12px)' }}
         />
         <MiniMap
           nodeColor={(n: Node) => getStyle((n.data as BrainNodeData).nodeType).color}
           maskColor="rgba(0,0,0,0.82)"
-          className="!bg-gray-950/90 !border-white/5 !rounded-2xl !shadow-2xl"
+          className="!bg-gray-50/90 !border-black/5 !rounded-2xl !shadow-2xl"
           style={{ backdropFilter: 'blur(12px)' }}
           nodeStrokeWidth={3}
           nodeStrokeColor={(n: Node) => getStyle((n.data as BrainNodeData).nodeType).color}

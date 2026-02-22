@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from services.ingestion_service import ingestion_service
 from services.commit_service import commit_service
 from services.github_service import github_service, github_webhook_service
+from services.snapshot_service import snapshot_service
 import hmac
 import hashlib
 import os
@@ -46,8 +47,21 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
         
         # Summarize commits if this is a push event
         commits = payload.get("commits", [])
+        last_commit = None
         for commit in commits:
-            commit_service.summarize_commit(repo_url, commit)
+            last_commit = commit_service.summarize_commit(repo_url, commit)
+
+        # Capture a graph snapshot after processing commits
+        if last_commit:
+            service_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
+            background_tasks.add_task(
+                snapshot_service.capture,
+                commit_hash=last_commit.get("hash"),
+                commit_message=last_commit.get("message"),
+                author=last_commit.get("author"),
+                repo_url=repo_url,
+                service_name=service_name,
+            )
     # Add more VCS logic as needed
 
     if not repo_url:
@@ -55,7 +69,7 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
 
     # Trigger background ingestion
     background_tasks.add_task(ingestion_service.ingest_repository, repo_url)
-    return {"status": "processing", "message": f"Ingestion triggered and commits summarized for {repo_url} (branch: {branch})"}
+    return {"status": "processing", "message": f"Ingestion triggered, commits summarized, and graph snapshot scheduled for {repo_url} (branch: {branch})"}
 
 @router.get("/commits")
 async def get_recent_commits(limit: int = 20):

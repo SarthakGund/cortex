@@ -73,24 +73,24 @@ interface ChainResult {
 // ── Colors ─────────────────────────────────────────────────────────────────
 
 const TYPE_COLORS: Record<string, string> = {
-  Service: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
-  Module: "bg-violet-500/20 text-violet-400 border-violet-500/30",
-  File: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  Class: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-  Function: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  Schema: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  Endpoint: "bg-red-500/20 text-red-400 border-red-500/30",
-  Database: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  Table: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-  MessageQueue: "bg-pink-500/20 text-pink-400 border-pink-500/30",
-  Developer: "bg-lime-500/20 text-lime-400 border-lime-500/30",
+  Service: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  Module: "bg-violet-100 text-violet-700 border-violet-200",
+  File: "bg-purple-100 text-purple-700 border-purple-200",
+  Class: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  Function: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  Schema: "bg-amber-100 text-amber-700 border-amber-200",
+  Endpoint: "bg-red-100 text-red-700 border-red-200",
+  Database: "bg-orange-100 text-orange-700 border-orange-200",
+  Table: "bg-orange-100 text-orange-700 border-orange-200",
+  MessageQueue: "bg-pink-100 text-pink-700 border-pink-200",
+  Developer: "bg-lime-100 text-lime-700 border-lime-200",
 };
 
 const RISK_COLORS: Record<string, string> = {
-  LOW: "bg-green-500/20 text-green-400 border-green-500/40",
-  MEDIUM: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40",
-  HIGH: "bg-orange-500/20 text-orange-400 border-orange-500/40",
-  CRITICAL: "bg-red-500/20 text-red-400 border-red-500/40",
+  LOW: "bg-green-100 text-green-700 border-green-200",
+  MEDIUM: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  HIGH: "bg-orange-100 text-orange-700 border-orange-200",
+  CRITICAL: "bg-red-100 text-red-700 border-red-200",
 };
 
 const RISK_ICONS: Record<string, typeof CheckCircle2> = {
@@ -193,31 +193,31 @@ export default function ImpactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-[#080c14]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-black/5 bg-slate-50/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <a href="/" className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
+            <a href="/" className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors">
               <Zap size={18} className="text-indigo-400" />
-              <span className="font-semibold">SPIT</span>
+              {/* <span className="font-semibold">SPIT</span> */}
             </a>
             <span className="text-slate-700">/</span>
             <div className="flex items-center gap-2">
               <Target size={16} className="text-orange-400" />
-              <span className="font-semibold text-white">What-If Analyzer</span>
+              <span className="font-semibold text-slate-900">What-If Analyzer</span>
             </div>
           </div>
-          <div className="flex items-center gap-1 bg-slate-800/50 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-slate-100/50 rounded-lg p-0.5">
             <button
               onClick={() => setMode("blast")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${mode === "blast" ? "bg-orange-500/20 text-orange-400" : "text-slate-400 hover:text-white"}`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${mode === "blast" ? "bg-orange-500/20 text-orange-400" : "text-slate-600 hover:text-slate-900"}`}
             >
               <Target size={12} className="inline mr-1" /> Blast Radius
             </button>
             <button
               onClick={() => setMode("chain")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${mode === "chain" ? "bg-blue-500/20 text-blue-400" : "text-slate-400 hover:text-white"}`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${mode === "chain" ? "bg-blue-500/20 text-blue-400" : "text-slate-600 hover:text-slate-900"}`}
             >
               <GitBranch size={12} className="inline mr-1" /> Dep Chain
             </button>
@@ -229,7 +229,7 @@ export default function ImpactPage() {
         {mode === "blast" ? (
           <div className="space-y-6">
             {/* Search + Controls */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Target size={20} className="text-orange-400" />
                 Select a Component to Analyze
@@ -243,22 +243,22 @@ export default function ImpactPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleBlastRadius()}
                     placeholder="Search by function, service, endpoint, class name..."
-                    className="w-full bg-slate-800/60 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
+                    className="w-full bg-slate-100/60 border border-slate-300 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
                   />
 
                   {/* Autocomplete dropdown */}
                   {searchResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-slate-100 border border-slate-300 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto">
                       {searchResults.map((r, i) => (
                         <button
                           key={`${r.name}-${i}`}
                           onClick={() => handleBlastRadius(r)}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-700/50 flex items-center gap-3 text-sm border-b border-slate-700/50 last:border-0"
+                          className="w-full text-left px-3 py-2 hover:bg-slate-200/50 flex items-center gap-3 text-sm border-b border-slate-300/50 last:border-0"
                         >
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${TYPE_COLORS[r.type] ?? "bg-slate-700 text-slate-300"}`}>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${TYPE_COLORS[r.type] ?? "bg-slate-200 text-slate-700"}`}>
                             {r.type}
                           </span>
-                          <span className="text-white flex-1 truncate">{r.name}</span>
+                          <span className="text-slate-900 flex-1 truncate">{r.name}</span>
                           {r.service && <span className="text-slate-500 text-xs">{r.service}</span>}
                         </button>
                       ))}
@@ -267,23 +267,23 @@ export default function ImpactPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-xs text-slate-400">
+                  <label className="flex items-center gap-2 text-xs text-slate-600">
                     <span>Depth:</span>
                     <select
                       value={depth}
                       onChange={(e) => setDepth(Number(e.target.value))}
-                      className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                      className="bg-slate-100 border border-slate-300 rounded px-2 py-1 text-xs text-slate-900"
                     >
                       {[1, 2, 3, 4, 5, 6].map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </label>
 
-                  <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={withSummary}
                       onChange={(e) => setWithSummary(e.target.checked)}
-                      className="rounded border-slate-600 bg-slate-800"
+                      className="rounded border-slate-400 bg-slate-100"
                     />
                     AI Summary
                   </label>
@@ -291,7 +291,7 @@ export default function ImpactPage() {
                   <button
                     onClick={() => handleBlastRadius()}
                     disabled={loading || !searchQuery.trim()}
-                    className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white disabled:opacity-50 transition-all flex items-center gap-2"
+                    className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-slate-900 disabled:opacity-50 transition-all flex items-center gap-2"
                   >
                     {loading ? <Loader2 size={14} className="animate-spin" /> : <Target size={14} />}
                     Analyze
@@ -306,35 +306,35 @@ export default function ImpactPage() {
         ) : (
           <div className="space-y-6">
             {/* Chain input */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <GitBranch size={20} className="text-blue-400" />
                 Find Dependency Chain
               </h2>
               <div className="flex gap-4 items-end">
                 <div className="flex-1">
-                  <label className="block text-xs text-slate-400 mb-1">Source</label>
+                  <label className="block text-xs text-slate-600 mb-1">Source</label>
                   <input
                     value={chainSource}
                     onChange={(e) => setChainSource(e.target.value)}
                     placeholder="e.g. auth-service"
-                    className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-slate-100/60 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
                 <ArrowRight size={20} className="text-slate-500 mb-3" />
                 <div className="flex-1">
-                  <label className="block text-xs text-slate-400 mb-1">Target</label>
+                  <label className="block text-xs text-slate-600 mb-1">Target</label>
                   <input
                     value={chainTarget}
                     onChange={(e) => setChainTarget(e.target.value)}
                     placeholder="e.g. payment-service"
-                    className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-slate-100/60 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
                 <button
                   onClick={handleChainFind}
                   disabled={chainLoading || !chainSource.trim() || !chainTarget.trim()}
-                  className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white disabled:opacity-50 transition-all flex items-center gap-2"
+                  className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-slate-900 disabled:opacity-50 transition-all flex items-center gap-2"
                 >
                   {chainLoading ? <Loader2 size={14} className="animate-spin" /> : <Network size={14} />}
                   Find Path
@@ -387,23 +387,23 @@ function BlastRadiusView({ data }: { data: BlastRadius }) {
 
       {/* AI Risk Assessment (if requested) */}
       {data.risk_level && (
-        <div className={`border rounded-xl p-5 ${RISK_COLORS[data.risk_level] ?? "border-slate-700"}`}>
+        <div className={`border rounded-xl p-5 ${RISK_COLORS[data.risk_level] ?? "border-slate-300"}`}>
           <div className="flex items-center gap-3 mb-3">
             <RiskIcon size={20} />
             <span className="font-semibold">Risk Level: {data.risk_level}</span>
           </div>
-          {data.summary && <p className="text-sm text-slate-300 mb-3">{data.summary}</p>}
+          {data.summary && <p className="text-sm text-slate-700 mb-3">{data.summary}</p>}
           {data.breaking_change_risk && (
-            <p className="text-sm text-slate-400 mb-3">
-              <strong className="text-slate-300">Breaking change risk:</strong> {data.breaking_change_risk}
+            <p className="text-sm text-slate-600 mb-3">
+              <strong className="text-slate-700">Breaking change risk:</strong> {data.breaking_change_risk}
             </p>
           )}
           {data.recommendations && data.recommendations.length > 0 && (
             <div className="mt-3">
-              <h4 className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">Recommendations</h4>
+              <h4 className="text-xs font-medium text-slate-600 mb-2 uppercase tracking-wider">Recommendations</h4>
               <ul className="space-y-1">
                 {data.recommendations.map((r, i) => (
-                  <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                  <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
                     <span className="text-xs text-slate-500 mt-0.5">{i + 1}.</span> {r}
                   </li>
                 ))}
@@ -413,7 +413,7 @@ function BlastRadiusView({ data }: { data: BlastRadius }) {
           {data.affected_areas && data.affected_areas.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {data.affected_areas.map((a, i) => (
-                <span key={i} className="px-2 py-0.5 rounded-full bg-slate-800 text-xs text-slate-300 border border-slate-700">
+                <span key={i} className="px-2 py-0.5 rounded-full bg-slate-100 text-xs text-slate-700 border border-slate-300">
                   {a}
                 </span>
               ))}
@@ -431,16 +431,16 @@ function BlastRadiusView({ data }: { data: BlastRadius }) {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {data.direct.map((d, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm bg-slate-800/40 rounded-lg px-3 py-2 border border-slate-700/50">
+              <div key={i} className="flex items-center gap-2 text-sm bg-slate-100/40 rounded-lg px-3 py-2 border border-slate-300/50">
                 {d.direction === "incoming" ? (
                   <ArrowLeft size={12} className="text-red-400 flex-shrink-0" />
                 ) : (
                   <ArrowRight size={12} className="text-blue-400 flex-shrink-0" />
                 )}
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${TYPE_COLORS[d.type] ?? "bg-slate-700 text-slate-300"}`}>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${TYPE_COLORS[d.type] ?? "bg-slate-200 text-slate-700"}`}>
                   {d.type}
                 </span>
-                <span className="text-white truncate flex-1">{d.name}</span>
+                <span className="text-slate-900 truncate flex-1">{d.name}</span>
                 <span className="text-xs text-slate-500 font-mono">{d.relationship}</span>
               </div>
             ))}
@@ -474,9 +474,9 @@ function BlastRadiusView({ data }: { data: BlastRadius }) {
 function ChainView({ data }: { data: ChainResult }) {
   if (!data.found) {
     return (
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8 text-center">
+      <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
         <X size={32} className="mx-auto text-slate-600 mb-3" />
-        <p className="text-slate-400">No dependency chain found between <strong className="text-white">{data.source}</strong> and <strong className="text-white">{data.target}</strong></p>
+        <p className="text-slate-600">No dependency chain found between <strong className="text-slate-900">{data.source}</strong> and <strong className="text-slate-900">{data.target}</strong></p>
         <p className="text-xs text-slate-600 mt-1">Try different node names or increase the max depth.</p>
       </div>
     );
@@ -485,7 +485,7 @@ function ChainView({ data }: { data: ChainResult }) {
   return (
     <div className="space-y-4">
       {data.chains.map((chain, ci) => (
-        <div key={ci} className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
+        <div key={ci} className="bg-white border border-slate-200 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <GitBranch size={16} className="text-blue-400" />
             <span className="text-sm font-medium">Path {ci + 1} — {chain.hops} hop{chain.hops > 1 ? "s" : ""}</span>
@@ -493,7 +493,7 @@ function ChainView({ data }: { data: ChainResult }) {
           <div className="flex items-center flex-wrap gap-2">
             {chain.steps.map((step, si) => (
               <div key={si} className="flex items-center gap-2">
-                <div className={`px-3 py-1.5 rounded-lg border text-sm ${TYPE_COLORS[step.type] ?? "bg-slate-800 text-slate-300 border-slate-700"}`}>
+                <div className={`px-3 py-1.5 rounded-lg border text-sm ${TYPE_COLORS[step.type] ?? "bg-slate-100 text-slate-700 border-slate-300"}`}>
                   <span className="text-[10px] font-mono opacity-60 mr-1.5">{step.type}</span>
                   {step.name}
                 </div>
@@ -517,7 +517,7 @@ function ChainView({ data }: { data: ChainResult }) {
 
 function StatCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+    <div className="bg-white border border-slate-200 rounded-xl p-4">
       <div className="flex items-center gap-2 mb-1">
         {icon}
         <span className="text-xs text-slate-500 uppercase tracking-wider">{label}</span>
@@ -533,10 +533,10 @@ function CollapsibleSection({ title, icon, defaultOpen, children }: {
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-5 py-3.5 text-sm font-medium hover:bg-slate-800/30 transition-colors"
+        className="w-full flex items-center gap-2 px-5 py-3.5 text-sm font-medium hover:bg-slate-100/30 transition-colors"
       >
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         {icon}
@@ -556,15 +556,15 @@ function TypeGroupedList({ items, direction }: { items: Record<string, BlastItem
       {Object.entries(items).map(([type, list]) => (
         <div key={type}>
           <div className="flex items-center gap-2 mb-2">
-            <span className={`px-2 py-0.5 rounded text-[11px] font-mono border ${TYPE_COLORS[type] ?? "bg-slate-700 text-slate-300 border-slate-600"}`}>
+            <span className={`px-2 py-0.5 rounded text-[11px] font-mono border ${TYPE_COLORS[type] ?? "bg-slate-200 text-slate-700 border-slate-400"}`}>
               {type}
             </span>
             <span className="text-xs text-slate-500">({list.length})</span>
           </div>
           <div className="space-y-1 ml-3">
             {list.map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-slate-300">
-                <span className="text-white">{item.name}</span>
+              <div key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                <span className="text-slate-900">{item.name}</span>
                 {item.service && <span className="text-xs text-slate-600">({item.service})</span>}
                 {item.rel_chain.length > 0 && (
                   <span className="text-[10px] text-slate-600 font-mono ml-auto">{item.rel_chain.join(" → ")}</span>

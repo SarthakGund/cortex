@@ -196,7 +196,7 @@ export default function SearchPage() {
               <ArrowLeft size={18} />
             </Link>
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-              <Search size={18} className="text-white" />
+              <Search size={18} className="text-slate-900" />
             </div>
             <div>
               <h1 className="text-sm font-bold text-[var(--color-text-primary)] leading-none">
@@ -322,7 +322,7 @@ export default function SearchPage() {
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               <Filter size={14} className="text-[var(--color-text-muted)]" />
               {nodeType && (
-                <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border ${TYPE_COLORS[nodeType] || "bg-slate-500/15 text-slate-400 border-slate-500/30"}`}>
+                <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border ${TYPE_COLORS[nodeType] || "bg-slate-500/15 text-slate-600 border-slate-500/30"}`}>
                   {TYPE_ICONS[nodeType] || "📌"} {nodeType}
                   <button onClick={() => setNodeType("")} className="ml-1 opacity-60 hover:opacity-100">
                     <X size={10} />
@@ -427,7 +427,7 @@ export default function SearchPage() {
               >
                 <button
                   onClick={() => setExpanded(expanded === type ? null : type)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                  className="w-full flex items-center justify-between p-4 hover:bg-black/5 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-lg">{TYPE_ICONS[type] || "📌"}</span>
@@ -435,7 +435,7 @@ export default function SearchPage() {
                       {type}
                     </span>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full border ${TYPE_COLORS[type] || "bg-slate-500/15 text-slate-400 border-slate-500/30"}`}
+                      className={`text-xs px-2 py-0.5 rounded-full border ${TYPE_COLORS[type] || "bg-slate-500/15 text-slate-600 border-slate-500/30"}`}
                     >
                       {items.length}
                     </span>
@@ -452,7 +452,7 @@ export default function SearchPage() {
                     {items.map((item, i) => (
                       <div
                         key={`${item.name}-${i}`}
-                        className="px-4 py-3 hover:bg-white/5 transition-colors"
+                        className="px-4 py-3 hover:bg-black/5 transition-colors"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 min-w-0">

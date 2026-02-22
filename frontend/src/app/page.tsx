@@ -81,7 +81,7 @@ function scoreColor(score: number) {
   if (score >= 0.8) return "text-emerald-400 bg-emerald-400/10 border-emerald-400/20";
   if (score >= 0.6) return "text-blue-400 bg-blue-400/10 border-blue-400/20";
   if (score >= 0.4) return "text-amber-400 bg-amber-400/10 border-amber-400/20";
-  return "text-slate-400 bg-slate-400/10 border-slate-400/20";
+  return "text-[var(--color-text-muted)] bg-[var(--color-surface)] border-[var(--color-border)]";
 }
 
 function labelIcon(label: string) {
@@ -146,7 +146,7 @@ function SourceCard({ chunk, index }: { chunk: SourceChunk; index: number }) {
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] overflow-hidden transition-all duration-200">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left"
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-black/5 transition-colors text-left"
         aria-expanded={open}
       >
         <span className="text-lg">{labelIcon(chunk.metadata.label)}</span>
@@ -296,7 +296,6 @@ function IngestTab() {
   const [repoUrl, setRepoUrl] = useState("");
   const [status, setStatus] = useState<null | { type: "success" | "error" | "info"; text: string }>(null);
   const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [stats, setStats] = useState<VectorStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -321,6 +320,7 @@ function IngestTab() {
   const [repoList, setRepoList] = useState<string[]>([""]);
   const [incremental, setIncremental] = useState(true);
   const [ingestResult, setIngestResult] = useState<{ files_processed?: number; files_skipped?: number } | null>(null);
+  const [ingestionSuccess, setIngestionSuccess] = useState(false);
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
@@ -352,6 +352,8 @@ function IngestTab() {
       });
       const d = await r.json();
       setStatus({ type: "success", text: d.message });
+      setIngestionSuccess(true);
+      await fetchStats();
       if (d.files_processed !== undefined) setIngestResult({ files_processed: d.files_processed, files_skipped: d.files_skipped });
     } catch (err) {
       setStatus({ type: "error", text: `Failed: ${err}` });
@@ -375,6 +377,8 @@ function IngestTab() {
       });
       const d = await r.json();
       setStatus({ type: "success", text: d.message || `Multi-repo ingestion started for ${urls.length} repos` });
+      setIngestionSuccess(true);
+      await fetchStats();
     } catch (err) {
       setStatus({ type: "error", text: `Failed: ${err}` });
     } finally {
@@ -385,21 +389,6 @@ function IngestTab() {
   const addRepoSlot = () => setRepoList((prev) => [...prev, ""]);
   const removeRepoSlot = (idx: number) => setRepoList((prev) => prev.filter((_, i) => i !== idx));
   const updateRepoSlot = (idx: number, val: string) => setRepoList((prev) => prev.map((v, i) => (i === idx ? val : v)));
-
-  const handleSync = async () => {
-    setSyncing(true);
-    setStatus({ type: "info", text: "Syncing Knowledge Graph → Vector Store…" });
-    try {
-      const r = await fetch(`${API}/rag/sync/wait`, { method: "POST" });
-      const d = await r.json();
-      setStatus({ type: d.status === "success" ? "success" : "error", text: d.message });
-      await fetchStats();
-    } catch (err) {
-      setStatus({ type: "error", text: `Sync failed: ${err}` });
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   const handleClearVectorDB = async () => {
     if (!confirm("Delete all documents from the vector store? This cannot be undone.")) return;
@@ -440,12 +429,12 @@ function IngestTab() {
             value: stats ? "MiniLM" : "—",
             sub: "all-MiniLM-L6-v2",
           },
-          {
-            icon: <Sparkles size={18} className="text-amber-400" />,
-            label: "LLM",
-            value: stats?.llm_enabled ? "Gemini" : "Disabled",
-            sub: stats?.llm_enabled ? "2.0 Flash" : "set API key",
-          },
+          // {
+          //   icon: <Sparkles size={18} className="text-amber-400" />,
+          //   label: "LLM",
+          //   value: stats?.llm_enabled ? "Gemini" : "Disabled",
+          //   sub: stats?.llm_enabled ? "2.0 Flash" : "set API key",
+          // },
         ].map((card, i) => (
           <div
             key={i}
@@ -485,7 +474,7 @@ function IngestTab() {
         >
           <Network size={14} /> Multi-Repo
         </button>
-        <label className="ml-auto flex items-center gap-2 text-xs text-[var(--color-text-secondary)] cursor-pointer select-none">
+        {/* <label className="ml-auto flex items-center gap-2 text-xs text-[var(--color-text-secondary)] cursor-pointer select-none">
           <input
             type="checkbox"
             checked={incremental}
@@ -493,7 +482,7 @@ function IngestTab() {
             className="rounded border-[var(--color-border)] bg-[var(--color-surface)] text-blue-500 focus:ring-blue-500"
           />
           Incremental (skip unchanged)
-        </label>
+        </label> */}
       </div>
 
       {/* Ingest Form — Single */}
@@ -512,37 +501,6 @@ function IngestTab() {
           Fetch code from GitHub API and build the Knowledge Graph in Neo4j — no local clone needed
         </p>
       </div>
-    </div>
-
-    {/* GitHub Connection Status (Separate from Ingest Form) */}
-    <div className="flex items-center justify-between mb-6 p-3 bg-slate-800/20 rounded-xl border border-[var(--color-border)]">
-      <div className="flex items-center gap-3">
-        <Code2 size={16} className={githubToken ? "text-emerald-400" : "text-[var(--color-text-muted)]"} />
-        <div>
-          <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-            {githubToken ? "GitHub Connected" : "GitHub OAuth Not Connected"}
-          </p>
-          <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-            Connect to access private repos & attach webhooks.
-          </p>
-        </div>
-      </div>
-      {githubToken ? (
-        <button
-          type="button"
-          onClick={() => { setGithubToken(""); localStorage.removeItem("github_token"); }}
-          className="text-xs text-red-500 hover:text-red-400 font-medium px-2 py-1"
-        >
-          Disconnect
-        </button>
-      ) : (
-        <a
-          href={`${API}/auth/github/login`}
-          className="text-xs font-semibold px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 rounded-lg transition-all"
-        >
-          Connect App
-        </a>
-      )}
     </div>
 
     {/* Ingest Form */}
@@ -688,69 +646,44 @@ function IngestTab() {
         </div>
       )}
 
-      {/* Sync to Vector DB */}
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
-            <Database size={18} className="text-purple-400" />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
-              Sync to Vector Store
-            </h2>
-            <p className="text-xs text-[var(--color-text-muted)]">
-              Embed all graph nodes into ChromaDB for semantic Q&amp;A
-            </p>
-          </div>
-          <button
-            onClick={fetchStats}
-            disabled={statsLoading}
-            className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-glow)] transition-all"
-            title="Refresh stats"
-          >
-            <RefreshCw size={14} className={statsLoading ? "animate-spin" : ""} />
-          </button>
-        </div>
-
-        <div className="flex items-center justify-between p-4 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] mb-4">
+      {/* Vector Store Status */}
+      <div className="flex items-center justify-between px-4 py-3 bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl">
+        <div className="flex items-center gap-3">
+          <Database size={16} className="text-purple-400" />
           <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-            <BarChart3 size={16} className="text-purple-400" />
+            <BarChart3 size={14} className="text-purple-400" />
             <span>{stats?.document_count ?? 0} documents indexed</span>
+            <span className="text-[var(--color-text-muted)] text-xs">· auto-synced on ingest</span>
           </div>
           <StatusBadge ok={(stats?.document_count ?? 0) > 0} label={(stats?.document_count ?? 0) > 0 ? "Ready" : "Empty"} />
         </div>
-
-        <div className="flex gap-2">
-          <button
-            id="sync-btn"
-            onClick={handleSync}
-            disabled={syncing || clearing}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-purple-500/20"
+        <div className="flex items-center gap-2">
+          <Link
+            href={ingestionSuccess || (stats?.document_count ?? 0) > 0 ? "/graph" : "#"}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              ingestionSuccess || (stats?.document_count ?? 0) > 0
+                ? "text-blue-400 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20"
+                : "text-[var(--color-text-muted)] bg-[var(--color-surface)] border border-[var(--color-border)] opacity-50 cursor-not-allowed pointer-events-none"
+            }`}
           >
-            {syncing ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Syncing…
-              </>
-            ) : (
-              <>
-                <Activity size={16} />
-                Sync Graph → ChromaDB
-              </>
-            )}
+            <Network size={13} />
+            View Graph
+          </Link>
+          <button
+            onClick={fetchStats}
+            disabled={statsLoading}
+            className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-glow)] transition-all"
+            title="Refresh stats"
+          >
+            <RefreshCw size={13} className={statsLoading ? "animate-spin" : ""} />
           </button>
-
           <button
             onClick={handleClearVectorDB}
-            disabled={clearing || syncing || (stats?.document_count ?? 0) === 0}
+            disabled={clearing || (stats?.document_count ?? 0) === 0}
             title="Delete all documents from the vector store"
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-700 to-red-800 hover:from-red-600 hover:to-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-red-500/20"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            {clearing ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <X size={16} />
-            )}
+            {clearing ? <Loader2 size={13} className="animate-spin" /> : <X size={13} />}
             Clear DB
           </button>
         </div>
@@ -988,9 +921,9 @@ function ChatTab() {
             )}
           </button>
         </div>
-        <p className="text-center text-xs text-[var(--color-text-muted)] mt-1.5">
+        {/* <p className="text-center text-xs text-[var(--color-text-muted)] mt-1.5">
           Powered by Neo4j · ChromaDB · Gemini 2.0 Flash
-        </p>
+        </p> */}
       </div>
     </div>
   );
@@ -1009,6 +942,11 @@ function CommitsTab() {
   const [webhookLoading, setWebhookLoading] = useState(false);
   const [webhookMessage, setWebhookMessage] = useState<{type: "success" | "error" | "info"; text: string} | null>(null);
   const [showWebhookPanel, setShowWebhookPanel] = useState(false);
+
+  // Create webhook — separate form state
+  const [createWebhookUrl, setCreateWebhookUrl] = useState("");
+  const [createWebhookLoading, setCreateWebhookLoading] = useState(false);
+  const [createWebhookMessage, setCreateWebhookMessage] = useState<{type: "success" | "error"; text: string} | null>(null);
 
   const fetchCommits = useCallback(async () => {
     setLoading(true);
@@ -1080,32 +1018,30 @@ function CommitsTab() {
   };
 
   const createWebhook = async () => {
-    if (!webhookRepoUrl.trim()) {
-      setWebhookMessage({ type: "error", text: "Please enter a repository URL" });
+    if (!createWebhookUrl.trim()) {
+      setCreateWebhookMessage({ type: "error", text: "Please enter a repository URL" });
       return;
     }
-    setWebhookLoading(true);
-    setWebhookMessage(null);
+    setCreateWebhookLoading(true);
+    setCreateWebhookMessage(null);
     try {
       const r = await fetch(`${API}/webhook/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo_url: webhookRepoUrl })
+        body: JSON.stringify({ repo_url: createWebhookUrl })
       });
       if (r.ok) {
         const data = await r.json();
-        setWebhookMessage({ type: "success", text: data.message || "Webhook created successfully" });
-        // Re-check status
-        setTimeout(() => checkWebhook(), 1000);
+        setCreateWebhookMessage({ type: "success", text: data.message || "Webhook created successfully" });
       } else {
         const error = await r.json();
-        setWebhookMessage({ type: "error", text: error.detail || "Failed to create webhook" });
+        setCreateWebhookMessage({ type: "error", text: error.detail || "Failed to create webhook" });
       }
     } catch (err) {
       console.error("Webhook create error:", err);
-      setWebhookMessage({ type: "error", text: "Failed to create webhook" });
+      setCreateWebhookMessage({ type: "error", text: "Failed to create webhook" });
     } finally {
-      setWebhookLoading(false);
+      setCreateWebhookLoading(false);
     }
   };
 
@@ -1123,7 +1059,7 @@ function CommitsTab() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowWebhookPanel(!showWebhookPanel)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm hover:bg-white/5 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm hover:bg-black/5 transition-colors"
             title="Manage webhooks"
           >
             <Terminal size={16} />
@@ -1136,7 +1072,7 @@ function CommitsTab() {
               <select
                 value={selectedRepo}
                 onChange={(e) => setSelectedRepo(e.target.value)}
-                className="pl-10 pr-8 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm hover:bg-white/5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
+                className="pl-10 pr-8 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm hover:bg-black/5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
               >
                 <option value="all">All Repositories ({commits.length})</option>
                 {repositories.map(repo => (
@@ -1152,7 +1088,7 @@ function CommitsTab() {
           <button
             onClick={fetchCommits}
             disabled={loading}
-            className="p-2.5 rounded-xl border border-[var(--color-border)] hover:bg-white/5 disabled:opacity-50 transition-colors"
+            className="p-2.5 rounded-xl border border-[var(--color-border)] hover:bg-black/5 disabled:opacity-50 transition-colors"
             title="Refresh commits"
           >
             <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
@@ -1190,7 +1126,7 @@ function CommitsTab() {
                 <button
                   onClick={checkWebhook}
                   disabled={webhookLoading}
-                  className="px-4 py-2.5 rounded-xl border border-[var(--color-border)] hover:bg-white/5 disabled:opacity-50 transition-colors text-sm font-medium text-[var(--color-text-primary)]"
+                  className="px-4 py-2.5 rounded-xl border border-[var(--color-border)] hover:bg-black/5 disabled:opacity-50 transition-colors text-sm font-medium text-[var(--color-text-primary)]"
                 >
                   {webhookLoading ? <Loader2 size={16} className="animate-spin" /> : "Check"}
                 </button>
@@ -1211,13 +1147,7 @@ function CommitsTab() {
             )}
 
             {webhookStatus && !webhookStatus.exists && (
-              <button
-                onClick={createWebhook}
-                disabled={webhookLoading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 disabled:opacity-50 transition-colors text-sm font-medium"
-              >
-                {webhookLoading ? <Loader2 size={16} className="animate-spin" /> : <><Terminal size={16} />Create Webhook</>}
-              </button>
+              <p className="text-xs text-[var(--color-text-muted)] italic">No webhook found. Use the Create section below to set one up.</p>
             )}
 
             {webhookStatus && webhookStatus.exists && webhookStatus.webhook && (
@@ -1240,6 +1170,51 @@ function CommitsTab() {
                 </div>
               </div>
             )}
+
+            {/* Divider */}
+            <div className="border-t border-[var(--color-border)]" />
+
+            {/* Create Webhook */}
+            <div>
+              <h4 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-3">Create Webhook</h4>
+              <div>
+                <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-2">
+                  Repository URL
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <GitBranch size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                    <input
+                      type="url"
+                      value={createWebhookUrl}
+                      onChange={(e) => setCreateWebhookUrl(e.target.value)}
+                      placeholder="https://github.com/username/repository"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={createWebhook}
+                    disabled={createWebhookLoading}
+                    className="px-4 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 disabled:opacity-50 transition-colors text-sm font-medium flex items-center gap-2"
+                  >
+                    {createWebhookLoading ? <Loader2 size={16} className="animate-spin" /> : <><Terminal size={14} />Create</>}
+                  </button>
+                </div>
+              </div>
+
+              {createWebhookMessage && (
+                <div className={`flex items-start gap-2 p-3 rounded-xl text-sm mt-3 ${
+                  createWebhookMessage.type === "success"
+                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                    : "bg-red-500/10 border border-red-500/20 text-red-400"
+                }`}>
+                  {createWebhookMessage.type === "success"
+                    ? <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" />
+                    : <XCircle size={16} className="mt-0.5 flex-shrink-0" />}
+                  <span>{createWebhookMessage.text}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1279,16 +1254,16 @@ function CommitsTab() {
 
               <div className="flex gap-4">
                 <div className="hidden sm:flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 font-bold">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 border border-blue-300 flex items-center justify-center text-blue-700 font-bold">
                     {c.author[0]}
                   </div>
-                  <div className="w-0.5 flex-1 bg-gradient-to-b from-slate-700 to-transparent mt-2 rounded-full opacity-20" />
+                  <div className="w-0.5 flex-1 bg-gradient-to-b from-blue-200 to-transparent mt-2 rounded-full opacity-50" />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
                     <span className="text-sm font-bold text-[var(--color-text-primary)]">{c.author}</span>
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-mono bg-white/5 px-2 py-0.5 rounded uppercase">
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-mono bg-black/5 px-2 py-0.5 rounded uppercase">
                       {c.hash.slice(0, 7)}
                     </span>
                     <span className="text-[10px] text-[var(--color-text-muted)]">
@@ -1296,7 +1271,7 @@ function CommitsTab() {
                     </span>
                   </div>
 
-                  <p className="text-xs text-blue-300/80 font-medium mb-3 bg-blue-500/5 border border-blue-500/10 rounded-lg px-3 py-2 leading-relaxed">
+                  <p className="text-xs text-black font-medium mb-3 bg-blue-500/5 border border-blue-500/10 rounded-lg px-3 py-2 leading-relaxed">
                     <Sparkles size={12} className="inline mr-2 text-blue-400" />
                     {c.summary}
                   </p>
@@ -1474,18 +1449,23 @@ type Tab = "chat" | "ingest" | "commits" | "explorer";
 export default function Home() {
   const [tab, setTab] = useState<Tab>("chat");
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "chat", label: "Q&A Chat", icon: <MessageSquare size={15} /> },
+  const tabs: { id?: Tab; href?: string; label: string; icon: React.ReactNode }[] = [
     { id: "ingest", label: "Ingest & Sync", icon: <Database size={15} /> },
+    { id: "chat", label: "Q&A Chat", icon: <MessageSquare size={15} /> },
     { id: "commits", label: "Commit Logs", icon: <GitBranch size={15} /> },
     { id: "explorer", label: "Repo Explorer", icon: <FolderOpen size={15} /> },
+    { href: "/search", label: "Search", icon: <Search size={15} /> },
+    { href: "/scaffold", label: "Scaffold", icon: <Sparkles size={15} /> },
+    { href: "/impact", label: "What-If", icon: <AlertCircle size={15} /> },
+    { href: "/timeline", label: "Timeline", icon: <Activity size={15} /> },
+    { href: "/health", label: "Health", icon: <ShieldCheck size={15} /> },
   ];
 
   return (
     <div className="min-h-screen bg-grid">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-background)]/80 backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-background)]/80 backdrop-blur-xl overflow-x-auto">
+        <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between gap-4 min-w-max">
           <div className="flex items-center gap-3">
             {/* Logo */}
             <div className="relative">
@@ -1496,7 +1476,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-sm font-bold text-[var(--color-text-primary)] leading-none">
-                SPIT KAG·RAG
+                Weavr
               </h1>
               <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 leading-none">
                 Knowledge Graph Intelligence
@@ -1505,71 +1485,33 @@ export default function Home() {
           </div>
 
           {/* Tab pills */}
-          <nav className="flex items-center gap-1 bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-1">
+          <nav className="flex items-center gap-1 bg-[var(--color-card)] rounded-xl p-1">
             {tabs.map((t) => (
-              <button
-                key={t.id}
-                id={`tab-${t.id}`}
-                onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-lg transition-all ${tab === t.id
-                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm"
-                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-                  }`}
-              >
-                {t.icon}
-                {t.label}
-              </button>
+              t.href ? (
+                <Link
+                  key={t.href}
+                  href={t.href}
+                  className="flex items-center justify-center gap-2 text-xs font-medium px-3 py-2 rounded-lg transition-all min-w-[90px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-black/5"
+                >
+                  {t.icon}
+                  {t.label}
+                </Link>
+              ) : (
+                <button
+                  key={t.id}
+                  id={`tab-${t.id}`}
+                  onClick={() => setTab(t.id as Tab)}
+                  className={`flex items-center justify-center gap-2 text-xs font-medium px-3 py-2 rounded-lg transition-all min-w-[90px] ${tab === t.id
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-black/5"
+                    }`}
+                >
+                  {t.icon}
+                  {t.label}
+                </button>
+              )
             ))}
           </nav>
-
-          {/* Status dots + quick nav */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5">
-              <div className="relative">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                <div className="ping-slow absolute inset-0 w-2 h-2 rounded-full bg-emerald-400" />
-              </div>
-              <span className="text-[10px] text-[var(--color-text-muted)]">API Online</span>
-            </div>
-            <div className="hidden sm:flex items-center gap-1">
-              <Link
-                href="/graph"
-                className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors"
-              >
-                <Network size={10} /> Graph
-              </Link>
-              <Link
-                href="/search"
-                className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-colors"
-              >
-                <Search size={10} /> Search
-              </Link>
-              <Link
-                href="/scaffold"
-                className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-colors"
-              >
-                <Sparkles size={10} /> Scaffold
-              </Link>
-              <Link
-                href="/impact"
-                className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500/20 transition-colors"
-              >
-                <AlertCircle size={10} /> What-If
-              </Link>
-              <Link
-                href="/timeline"
-                className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-              >
-                <Activity size={10} /> Timeline
-              </Link>
-              <Link
-                href="/health"
-                className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 hover:bg-teal-500/20 transition-colors"
-              >
-                <ShieldCheck size={10} /> Health
-              </Link>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -1578,10 +1520,10 @@ export default function Home() {
         {/* Hero (chat tab only) */}
         {tab === "chat" && (
           <div className="mb-6 text-center fade-in-up">
-            <div className="inline-flex items-center gap-2 text-xs font-medium text-blue-400 bg-blue-400/10 border border-blue-400/20 rounded-full px-3 py-1 mb-3">
+            {/* <div className="inline-flex items-center gap-2 text-xs font-medium text-blue-400 bg-blue-400/10 border border-blue-400/20 rounded-full px-3 py-1 mb-3">
               <Sparkles size={11} />
               RAG-powered · Knowledge Graph · Semantic Search
-            </div>
+            </div> */}
             <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] mb-1">
               Ask your{" "}
               <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
@@ -1589,9 +1531,9 @@ export default function Home() {
               </span>{" "}
               anything
             </h2>
-            <p className="text-sm text-[var(--color-text-muted)]">
+            {/* <p className="text-sm text-[var(--color-text-muted)]">
               Neo4j Knowledge Graph → ChromaDB embeddings → Gemini answers
-            </p>
+            </p> */}
           </div>
         )}
 
@@ -1618,7 +1560,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--color-border)] py-4 mt-8">
+      {/* <footer className="border-t border-[var(--color-border)] py-4 mt-8">
         <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-[var(--color-text-muted)]">
             SPIT Hackathon 2026 · KAG-to-RAG Architecture
@@ -1630,7 +1572,7 @@ export default function Home() {
             <span className="flex items-center gap-1"><Terminal size={10} /> FastAPI</span>
           </div>
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 }

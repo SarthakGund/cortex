@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api import ingestion, webhook, rag, auth
 from api import ingestion
-from api import github, webhook, rag, scaffold, graph, impact, events, health
+from api import github, webhook, rag, scaffold, graph, impact, events, snapshots, health
 from core.database import init_db
 
 app = FastAPI(
@@ -36,6 +36,7 @@ app.include_router(scaffold.router)
 app.include_router(graph.router)
 app.include_router(impact.router)
 app.include_router(events.router)
+app.include_router(snapshots.router)
 app.include_router(health.router)
 
 @app.get("/")

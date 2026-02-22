@@ -20,7 +20,13 @@ from typing import Any, Optional
 
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-from google import genai
+try:
+    from google import genai
+    GENAI_AVAILABLE = True
+except ImportError:
+    genai = None  # type: ignore
+    GENAI_AVAILABLE = False
+    print("[RAG] google-genai not installed – LLM generation disabled.")
 
 from core.config import settings
 from services.graph_service import graph_service
@@ -94,11 +100,16 @@ class RAGService:
         )
 
         # --- Gemini ---
-        if settings.GEMINI_API_KEY:
-            self._llm = genai.Client(api_key=settings.GEMINI_API_KEY)
-            self._llm_enabled = True
+        if GENAI_AVAILABLE and settings.GEMINI_API_KEY:
+            try:
+                self._llm = genai.Client(api_key=settings.GEMINI_API_KEY)
+                self._llm_enabled = True
+            except Exception as e:
+                print(f"[RAG] Gemini init failed: {e}")
+                self._llm = None
+                self._llm_enabled = False
         else:
-            print("[RAG] GEMINI_API_KEY not set – answers will be context-only.")
+            print("[RAG] GEMINI_API_KEY not set or google-genai unavailable – answers will be context-only.")
             self._llm = None
             self._llm_enabled = False
 
