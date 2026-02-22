@@ -1,16 +1,29 @@
 import json
-import google.generativeai as genai
 from core.config import settings
+
+# Try to import Gemini, but don't fail if it's not available
+try:
+    import google.generativeai as genai
+    GENAI_AVAILABLE = True
+except ImportError as e:
+    print(f"[LLM] google.generativeai not available: {e}")
+    GENAI_AVAILABLE = False
+    genai = None
 
 class LLMService:
     def __init__(self):
-        if settings.GEMINI_API_KEY:
+        if not GENAI_AVAILABLE:
+            print("[LLM] google.generativeai not installed. LLM features disabled.")
+            self.enabled = False
+            self.model = None
+        elif settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
             self.model = genai.GenerativeModel("gemini-flash-latest")
             self.enabled = True
         else:
             print("[LLM] GEMINI_API_KEY not set. LLM validation disabled.")
             self.enabled = False
+            self.model = None
 
     def validate_and_fix_endpoints(self, code: str, raw_endpoints: list, file_name: str) -> list:
         """

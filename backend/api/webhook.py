@@ -1,7 +1,8 @@
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, Request, HTTPException
 from pydantic import BaseModel
 from services.ingestion_service import ingestion_service
 from services.commit_service import commit_service
+from services.github_service import github_service, github_webhook_service
 import hmac
 import hashlib
 import os
@@ -59,4 +60,88 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
 @router.get("/commits")
 async def get_recent_commits(limit: int = 20):
     """Retrieve recent commit summaries with AI analysis."""
-    return commit_service.get_recent_summaries(limit=limit)
+    try:
+        commits = commit_service.get_recent_summaries(limit=limit)
+        print(f"[Webhook] Returning {len(commits)} commits")
+        return commits
+    except Exception as e:
+        print(f"[Webhook] Error getting commits: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
+class WebhookCheckRequest(BaseModel):
+    repo_url: str
+    github_token: str = None
+
+class WebhookCreateRequest(BaseModel):
+    repo_url: str
+    github_token: str = None
+
+@router.post("/check")
+async def check_webhook(request: WebhookCheckRequest):
+    """Check if a webhook exists for the given repository."""
+    import requests
+    from core.config import settings
+    
+    token = request.github_token or settings.GITHUB_TOKEN
+    webhook_url = 'https://spectrum-suspension-paradise-magnet.trycloudflare.com/webhook/'
+    
+    if not token:
+        raise HTTPException(status_code=400, detail="GitHub token not provided")
+    
+    if not webhook_url:
+        raise HTTPException(status_code=400, detail="WEBHOOK_URL not configured")
+    
+    # Parse repo URL
+    parts = request.repo_url.rstrip("/").replace(".git", "").split("/")
+    if len(parts) < 2:
+        raise HTTPException(status_code=400, detail="Invalid repository URL")
+    
+    owner, repo = parts[-2], parts[-1]
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/hooks"
+    
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    try:
+        resp = requests.get(api_url, headers=headers)
+        if not resp.ok:
+            raise HTTPException(status_code=resp.status_code, detail=f"GitHub API error: {resp.json().get('message', 'Unknown error')}")
+        
+        existing_hooks = resp.json()
+        webhook_exists = False
+        webhook_data = None
+        
+        for hook in existing_hooks:
+            if hook["config"].get("url") == webhook_url:
+                webhook_exists = True
+                webhook_data = {
+                    "id": hook["id"],
+                    "url": hook["config"]["url"],
+                    "events": hook["events"],
+                    "active": hook["active"],
+                    "created_at": hook["created_at"],
+                    "updated_at": hook["updated_at"]
+                }
+                break
+        
+        return {
+            "exists": webhook_exists,
+            "webhook": webhook_data,
+            "repository": f"{owner}/{repo}"
+        }
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error checking webhook: {str(e)}")
+
+@router.post("/create")
+async def create_webhook(request: WebhookCreateRequest):
+    """Create a webhook for the given repository."""
+    result = github_webhook_service.create_webhook(request.repo_url, request.github_token)
+    
+    if result["status"] == "error":
+        raise HTTPException(status_code=400, detail=result["message"])
+    
+    return result

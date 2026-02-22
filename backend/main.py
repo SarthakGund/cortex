@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api import ingestion, webhook, rag, auth
 from api import ingestion
 from api import github, webhook, rag, scaffold, graph, impact, events
+from core.database import init_db
 
 app = FastAPI(
     title="SPIT - Intelligent Architecture & Knowledge Platform",
@@ -18,6 +19,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database tables on startup."""
+    print("[Startup] Initializing database tables...")
+    init_db()
+    print("[Startup] ✅ Database initialized")
 
 app.include_router(ingestion.router)
 app.include_router(github.router)

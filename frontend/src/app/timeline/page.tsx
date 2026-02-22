@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import {
   Clock, History, GitCompare, BarChart3, Loader2, Zap,
   Plus, RefreshCcw, Trash2, ChevronDown, ChevronRight,
-  ArrowRight, Filter, Calendar, AlertCircle
+  ArrowRight, Filter, Calendar, AlertCircle, Webhook, CheckCircle2,
+  XCircle, Github
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -152,6 +153,17 @@ function TimelineView() {
     service: "", entity_type: "", action: "", limit: 100,
   });
 
+  // Webhook management state
+  const [repoUrl, setRepoUrl] = useState("");
+  const [githubToken, setGithubToken] = useState("");
+  const [webhookStatus, setWebhookStatus] = useState<{
+    checking: boolean;
+    creating: boolean;
+    exists?: boolean;
+    webhook?: any;
+    message?: string;
+  }>({ checking: false, creating: false });
+
   const fetchEvents = async () => {
     setLoading(true);
     const params = new URLSearchParams();
@@ -167,10 +179,193 @@ function TimelineView() {
     setLoading(false);
   };
 
+  const checkWebhook = async () => {
+    if (!repoUrl) return;
+    setWebhookStatus({ ...webhookStatus, checking: true, message: undefined });
+    
+    try {
+      const res = await fetch(`${API}/webhook/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_url: repoUrl, github_token: githubToken || undefined }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setWebhookStatus({
+          checking: false,
+          creating: false,
+          exists: data.exists,
+          webhook: data.webhook,
+          message: data.exists
+            ? `✅ Webhook is active for ${data.repository}`
+            : `⚠️ No webhook found for ${data.repository}`,
+        });
+      } else {
+        const error = await res.json();
+        setWebhookStatus({
+          checking: false,
+          creating: false,
+          message: `❌ Error: ${error.detail || "Failed to check webhook"}`,
+        });
+      }
+    } catch (error) {
+      setWebhookStatus({
+        checking: false,
+        creating: false,
+        message: `❌ Network error: ${error}`,
+      });
+    }
+  };
+
+  const createWebhook = async () => {
+    if (!repoUrl) return;
+    setWebhookStatus({ ...webhookStatus, creating: true, message: undefined });
+    
+    try {
+      const res = await fetch(`${API}/webhook/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_url: repoUrl, github_token: githubToken || undefined }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === "success") {
+          setWebhookStatus({
+            checking: false,
+            creating: false,
+            exists: true,
+            message: "✅ Webhook created successfully!",
+          });
+        } else if (data.status === "exists") {
+          setWebhookStatus({
+            checking: false,
+            creating: false,
+            exists: true,
+            message: "✅ Webhook already exists!",
+          });
+        } else {
+          setWebhookStatus({
+            checking: false,
+            creating: false,
+            message: `⚠️ ${data.message}`,
+          });
+        }
+      } else {
+        const error = await res.json();
+        setWebhookStatus({
+          checking: false,
+          creating: false,
+          message: `❌ Error: ${error.detail || "Failed to create webhook"}`,
+        });
+      }
+    } catch (error) {
+      setWebhookStatus({
+        checking: false,
+        creating: false,
+        message: `❌ Network error: ${error}`,
+      });
+    }
+  };
+
   useEffect(() => { fetchEvents(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-4">
+      {/* Webhook Management Section */}
+      <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Webhook size={18} className="text-purple-400" />
+          <h3 className="text-sm font-semibold text-white">Webhook Management</h3>
+        </div>
+        
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">
+              GitHub Repository URL
+            </label>
+            <div className="relative">
+              <Github size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="url"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                placeholder="https://github.com/username/repository"
+                className="w-full pl-9 pr-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">
+              GitHub Token (optional, leave empty to use server config)
+            </label>
+            <input
+              type="password"
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
+              placeholder="ghp_xxxxxxxxxxxx"
+              className="w-full px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={checkWebhook}
+              disabled={!repoUrl || webhookStatus.checking}
+              className="flex-1 px-4 py-2 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              {webhookStatus.checking ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Checking...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={14} />
+                  Check Webhook
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={createWebhook}
+              disabled={!repoUrl || webhookStatus.creating}
+              className="flex-1 px-4 py-2 rounded-lg text-xs font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              {webhookStatus.creating ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus size={14} />
+                  Create Webhook
+                </>
+              )}
+            </button>
+          </div>
+
+          {webhookStatus.message && (
+            <div className={`px-3 py-2 rounded-lg text-xs ${
+              webhookStatus.exists
+                ? "bg-green-500/10 border border-green-500/30 text-green-400"
+                : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+            }`}>
+              {webhookStatus.message}
+              {webhookStatus.webhook && (
+                <div className="mt-2 text-[10px] text-slate-500 space-y-0.5">
+                  <div>Events: {webhookStatus.webhook.events.join(", ")}</div>
+                  <div>Created: {new Date(webhookStatus.webhook.created_at).toLocaleString()}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center gap-3">
         <Filter size={14} className="text-slate-500" />

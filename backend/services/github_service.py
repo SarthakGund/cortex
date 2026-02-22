@@ -126,7 +126,7 @@ github_service = GitHubService()
 import requests
 from core.config import settings
 
-class GitHubService:
+class GitHubWebhookService:
     def __init__(self):
         self.token = settings.GITHUB_TOKEN
         self.base_webhook_url = settings.WEBHOOK_URL
@@ -194,4 +194,4 @@ class GitHubService:
             print(f"[GitHubService] ❌ Error creating webhook: {e}")
             return {"status": "error", "message": str(e)}
 
-github_service = GitHubService()
+github_webhook_service = GitHubWebhookService()

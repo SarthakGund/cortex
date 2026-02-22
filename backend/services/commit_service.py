@@ -1,7 +1,17 @@
-from services.graph_service import graph_service
-from services.llm_service import llm_service
+from core.database import SessionLocal
+from core.models import Commit
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 import json
+
+# Try to import LLM service, but don't fail if it's not available
+try:
+    from services.llm_service import llm_service
+    LLM_AVAILABLE = True
+except Exception as e:
+    print(f"[CommitService] LLM service not available: {e}")
+    LLM_AVAILABLE = False
+    llm_service = None
 
 class CommitService:
     def __init__(self):
@@ -11,13 +21,25 @@ class CommitService:
         """
         Takes raw commit data from a webhook (message, modified files, etc.)
         and generates a high-level technical summary using Gemini.
+        Stores in PostgreSQL database.
         """
+        commit_hash = commit_data.get("id", "unknown")
         commit_msg = commit_data.get("message", "No commit message")
-        author = commit_data.get("author", {}).get("name", "Unknown")
+        author_data = commit_data.get("author", {})
+        author = author_data.get("name", author_data.get("username", "Unknown"))
         added = commit_data.get("added", [])
         modified = commit_data.get("modified", [])
         removed = commit_data.get("removed", [])
-        timestamp = commit_data.get("timestamp", datetime.now().isoformat())
+        timestamp_str = commit_data.get("timestamp", datetime.now().isoformat())
+        
+        # Parse timestamp
+        try:
+            timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        except:
+            timestamp = datetime.now()
+
+        # Extract service name from repo URL
+        service_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
 
         prompt = f"""
         You are an expert lead developer reviewing a code change.
@@ -35,59 +57,79 @@ class CommitService:
         """
 
         summary = "No summary available."
-        if llm_service.enabled:
+        if LLM_AVAILABLE and llm_service and llm_service.enabled:
             try:
                 response = llm_service.model.generate_content(prompt)
                 summary = response.text.strip()
             except Exception as e:
                 print(f"[CommitService] LLM Error: {e}")
         
-        # Store in Neo4j
-        service_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
-        self._store_commit_node(service_name, commit_data.get("id", "unknown"), author, summary, timestamp, commit_msg)
+        # Store in PostgreSQL
+        self._store_commit_db(
+            commit_hash=commit_hash,
+            repo_url=repo_url,
+            service_name=service_name,
+            author=author,
+            message=commit_msg,
+            summary=summary,
+            timestamp=timestamp
+        )
         
         return {
-            "id": commit_data.get("url"),
+            "hash": commit_hash,
             "author": author,
             "summary": summary,
             "message": commit_msg,
-            "timestamp": timestamp
+            "timestamp": timestamp.isoformat(),
+            "service": service_name
         }
 
-    def _store_commit_node(self, service_name, commit_hash, author, summary, timestamp, raw_message):
-        cypher = """
-        MERGE (c:Commit {hash: $hash})
-        ON CREATE SET 
-            c.author = $author,
-            c.summary = $summary,
-            c.timestamp = $timestamp,
-            c.message = $message
-        WITH c
-        MERGE (s:Service {name: $service_name})
-        MERGE (c)-[:BELONGS_TO]->(s)
-        """
-        with graph_service.driver.session() as session:
-            session.run(cypher, hash=commit_hash, author=author, summary=summary, timestamp=timestamp, message=raw_message, service_name=service_name)
+    def _store_commit_db(self, commit_hash: str, repo_url: str, service_name: str, 
+                         author: str, message: str, summary: str, timestamp: datetime):
+        """Store commit in PostgreSQL database."""
+        db = SessionLocal()
+        try:
+            # Check if commit already exists
+            existing = db.query(Commit).filter(Commit.hash == commit_hash).first()
+            if existing:
+                print(f"[CommitService] Commit {commit_hash[:7]} already exists, skipping")
+                return
+            
+            commit = Commit(
+                hash=commit_hash,
+                repo_url=repo_url,
+                service_name=service_name,
+                author=author,
+                message=message,
+                summary=summary,
+                timestamp=timestamp
+            )
+            db.add(commit)
+            db.commit()
+            print(f"[CommitService] ✅ Stored commit {commit_hash[:7]} for {service_name}")
+        except IntegrityError as e:
+            db.rollback()
+            print(f"[CommitService] Commit {commit_hash[:7]} already exists (integrity error)")
+        except Exception as e:
+            db.rollback()
+            print(f"[CommitService] Error storing commit: {e}")
+        finally:
+            db.close()
 
-    def get_recent_summaries(self, limit: int = 10):
-        cypher = """
-        MATCH (c:Commit)-[:BELONGS_TO]->(s:Service)
-        RETURN c.hash as hash, c.author as author, c.summary as summary, c.timestamp as timestamp, c.message as message, s.name as service
-        ORDER BY c.timestamp DESC
-        LIMIT $limit
-        """
-        results = []
-        with graph_service.driver.session() as session:
-            records = session.run(cypher, limit=limit)
-            for r in records:
-                results.append({
-                    "hash": r["hash"],
-                    "author": r["author"],
-                    "summary": r["summary"],
-                    "timestamp": r["timestamp"],
-                    "message": r["message"],
-                    "service": r["service"]
-                })
-        return results
+    def get_recent_summaries(self, limit: int = 20):
+        """Retrieve recent commit summaries from PostgreSQL."""
+        db = SessionLocal()
+        try:
+            commits = db.query(Commit).order_by(Commit.timestamp.desc()).limit(limit).all()
+            result = [commit.to_dict() for commit in commits]
+            print(f"[CommitService] Fetched {len(result)} commits from database")
+            return result
+        except Exception as e:
+            print(f"[CommitService] Error fetching commits: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+        finally:
+            db.close()
 
 commit_service = CommitService()

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   Send,
@@ -24,6 +24,7 @@ import {
   Terminal,
   Info,
   X,
+  XCircle,
   FolderOpen,
   FileCode2,
 } from "lucide-react";
@@ -495,117 +496,98 @@ function IngestTab() {
       </div>
 
       {/* Ingest Form — Single */}
-      {!multiMode && (
-        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <GitBranch size={18} className="text-blue-400" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
-                Ingest Repository
-              </h2>
-              <p className="text-xs text-[var(--color-text-muted)]">
-                Fetch code from GitHub API and build the Knowledge Graph in Neo4j — no local clone needed
-              </p>
-            </div>
-          </div>
+{!multiMode && (
+  <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6">
+    {/* Header Section */}
+    <div className="flex items-center gap-3 mb-5">
+      <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+        <GitBranch size={18} className="text-blue-400" />
+      </div>
+      <div>
+        <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
+          Ingest Repository
+        </h2>
+        <p className="text-xs text-[var(--color-text-muted)]">
+          Fetch code from GitHub API and build the Knowledge Graph in Neo4j — no local clone needed
+        </p>
+      </div>
+    </div>
 
-        <form onSubmit={handleIngest} className="space-y-4">
-          {/* GitHub Connection */}
-          <div className="flex items-center justify-between mb-2 p-3 bg-slate-800/20 rounded-xl border border-[var(--color-border)]">
-            <div className="flex items-center gap-3">
-              <Code2 size={16} className={githubToken ? "text-emerald-400" : "text-[var(--color-text-muted)]"} />
-              <div>
-                <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-                  {githubToken ? "GitHub Connected" : "GitHub OAuth Not Connected"}
-                </p>
-                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                  Connect to access private repos & attach webhooks.
-                </p>
-              </div>
-            </div>
-            {githubToken ? (
-              <button
-                type="button"
-                onClick={() => { setGithubToken(""); localStorage.removeItem("github_token"); }}
-                className="text-xs text-red-500 hover:text-red-400 font-medium px-2 py-1"
-              >
-                Disconnect
-              </button>
-            ) : (
-              <a
-                href={`${API}/auth/github/login`}
-                className="text-xs font-semibold px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 rounded-lg transition-all"
-              >
-                Connect App
-              </a>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-2">
-              GitHub Repository URL
-            </label>
-            <div className="relative">
-              <GitBranch
-                size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-              />
-              <input
-                id="repo-url-input"
-                type="url"
-                required
-                value={repoUrl}
-                onChange={(e) => setRepoUrl(e.target.value)}
-                placeholder="https://github.com/username/repository"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all text-sm"
-              />
-            </div>
-          </div>
-          <form onSubmit={handleIngest} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-2">
-                GitHub Repository URL
-              </label>
-              <div className="relative">
-                <GitBranch
-                  size={16}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-                />
-                <input
-                  id="repo-url-input"
-                  type="url"
-                  required
-                  value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
-                  placeholder="https://github.com/username/repository"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all text-sm"
-                />
-              </div>
-            </div>
-
-            <button
-              id="ingest-btn"
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Ingesting…
-                </>
-              ) : (
-                <>
-                  <Zap size={16} />
-                  Ingest Repository
-                </>
-              )}
-            </button>
-          </form>
+    {/* GitHub Connection Status (Separate from Ingest Form) */}
+    <div className="flex items-center justify-between mb-6 p-3 bg-slate-800/20 rounded-xl border border-[var(--color-border)]">
+      <div className="flex items-center gap-3">
+        <Code2 size={16} className={githubToken ? "text-emerald-400" : "text-[var(--color-text-muted)]"} />
+        <div>
+          <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+            {githubToken ? "GitHub Connected" : "GitHub OAuth Not Connected"}
+          </p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+            Connect to access private repos & attach webhooks.
+          </p>
         </div>
+      </div>
+      {githubToken ? (
+        <button
+          type="button"
+          onClick={() => { setGithubToken(""); localStorage.removeItem("github_token"); }}
+          className="text-xs text-red-500 hover:text-red-400 font-medium px-2 py-1"
+        >
+          Disconnect
+        </button>
+      ) : (
+        <a
+          href={`${API}/auth/github/login`}
+          className="text-xs font-semibold px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 rounded-lg transition-all"
+        >
+          Connect App
+        </a>
       )}
+    </div>
+
+    {/* Ingest Form */}
+    <form onSubmit={handleIngest} className="space-y-4">
+      <div>
+        <label htmlFor="repo-url-input" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-2">
+          GitHub Repository URL
+        </label>
+        <div className="relative">
+          <GitBranch
+            size={16}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+          />
+          <input
+            id="repo-url-input"
+            type="url"
+            required
+            value={repoUrl}
+            onChange={(e) => setRepoUrl(e.target.value)}
+            placeholder="https://github.com/username/repository"
+            className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all text-sm"
+          />
+        </div>
+      </div>
+
+      <button
+        id="ingest-btn"
+        type="submit"
+        disabled={loading}
+        className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30"
+      >
+        {loading ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            Ingesting…
+          </>
+        ) : (
+          <>
+            <Zap size={16} />
+            Ingest Repository
+          </>
+        )}
+      </button>
+    </form>
+  </div>
+)}
 
       {/* Ingest Form — Multi-Repo */}
       {multiMode && (
@@ -1018,17 +1000,31 @@ function ChatTab() {
 function CommitsTab() {
   const [commits, setCommits] = useState<CommitSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState<string>("all");
+  
+  // Webhook management state
+  const [webhookRepoUrl, setWebhookRepoUrl] = useState("");
+  const [webhookStatus, setWebhookStatus] = useState<any>(null);
+  const [webhookLoading, setWebhookLoading] = useState(false);
+  const [webhookMessage, setWebhookMessage] = useState<{type: "success" | "error" | "info"; text: string} | null>(null);
+  const [showWebhookPanel, setShowWebhookPanel] = useState(false);
 
   const fetchCommits = useCallback(async () => {
     setLoading(true);
     try {
+      console.log(`[CommitsTab] Fetching commits from: ${API}/webhook/commits`);
       const r = await fetch(`${API}/webhook/commits`);
       if (r.ok) {
         const data = await r.json();
+        console.log(`[CommitsTab] Received ${Array.isArray(data) ? data.length : 0} commits:`, data);
         setCommits(data);
+      } else {
+        console.error(`[CommitsTab] Failed to fetch commits. Status: ${r.status}`);
+        const errorText = await r.text();
+        console.error(`[CommitsTab] Error response:`, errorText);
       }
     } catch (err) {
-      console.error("Failed to fetch commits", err);
+      console.error("[CommitsTab] Failed to fetch commits", err);
     } finally {
       setLoading(false);
     }
@@ -1038,9 +1034,83 @@ function CommitsTab() {
     fetchCommits();
   }, [fetchCommits]);
 
+  // Get unique repositories from commits
+  const repositories = useMemo(() => {
+    const repos = new Set(commits.map(c => c.service));
+    return Array.from(repos).sort();
+  }, [commits]);
+
+  // Filter commits by selected repository
+  const filteredCommits = useMemo(() => {
+    if (selectedRepo === "all") return commits;
+    return commits.filter(c => c.service === selectedRepo);
+  }, [commits, selectedRepo]);
+
+  const checkWebhook = async () => {
+    if (!webhookRepoUrl.trim()) {
+      setWebhookMessage({ type: "error", text: "Please enter a repository URL" });
+      return;
+    }
+    setWebhookLoading(true);
+    setWebhookMessage(null);
+    try {
+      const r = await fetch(`${API}/webhook/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_url: webhookRepoUrl })
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setWebhookStatus(data);
+        setWebhookMessage({
+          type: data.exists ? "success" : "info",
+          text: data.exists ? `Webhook exists for ${data.repository}` : `No webhook found for ${data.repository}`
+        });
+      } else {
+        const error = await r.json();
+        setWebhookMessage({ type: "error", text: error.detail || "Failed to check webhook" });
+      }
+    } catch (err) {
+      console.error("Webhook check error:", err);
+      setWebhookMessage({ type: "error", text: "Failed to check webhook status" });
+    } finally {
+      setWebhookLoading(false);
+    }
+  };
+
+  const createWebhook = async () => {
+    if (!webhookRepoUrl.trim()) {
+      setWebhookMessage({ type: "error", text: "Please enter a repository URL" });
+      return;
+    }
+    setWebhookLoading(true);
+    setWebhookMessage(null);
+    try {
+      const r = await fetch(`${API}/webhook/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_url: webhookRepoUrl })
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setWebhookMessage({ type: "success", text: data.message || "Webhook created successfully" });
+        // Re-check status
+        setTimeout(() => checkWebhook(), 1000);
+      } else {
+        const error = await r.json();
+        setWebhookMessage({ type: "error", text: error.detail || "Failed to create webhook" });
+      }
+    } catch (err) {
+      console.error("Webhook create error:", err);
+      setWebhookMessage({ type: "error", text: "Failed to create webhook" });
+    } finally {
+      setWebhookLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-1">
             System Evolution
@@ -1049,14 +1119,129 @@ function CommitsTab() {
             AI-generated summaries of recent changes across all services
           </p>
         </div>
-        <button
-          onClick={fetchCommits}
-          disabled={loading}
-          className="p-2.5 rounded-xl border border-[var(--color-border)] hover:bg-white/5 disabled:opacity-50"
-        >
-          <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowWebhookPanel(!showWebhookPanel)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm hover:bg-white/5 transition-colors"
+            title="Manage webhooks"
+          >
+            <Terminal size={16} />
+            <span className="hidden sm:inline">Webhooks</span>
+            {showWebhookPanel ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          {/* Repository Filter Dropdown */}
+          {repositories.length > 0 && (
+            <div className="relative">
+              <select
+                value={selectedRepo}
+                onChange={(e) => setSelectedRepo(e.target.value)}
+                className="pl-10 pr-8 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm hover:bg-white/5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
+              >
+                <option value="all">All Repositories ({commits.length})</option>
+                {repositories.map(repo => (
+                  <option key={repo} value={repo}>
+                    {repo} ({commits.filter(c => c.service === repo).length})
+                  </option>
+                ))}
+              </select>
+              <GitBranch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+            </div>
+          )}
+          <button
+            onClick={fetchCommits}
+            disabled={loading}
+            className="p-2.5 rounded-xl border border-[var(--color-border)] hover:bg-white/5 disabled:opacity-50 transition-colors"
+            title="Refresh commits"
+          >
+            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
+
+      {/* Webhook Management Panel */}
+      {showWebhookPanel && (
+        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-5 fade-in-up">
+          <div className="flex items-center gap-3 mb-4">
+            <Terminal size={18} className="text-blue-400" />
+            <div>
+              <h3 className="text-sm font-bold text-[var(--color-text-primary)]">Webhook Management</h3>
+              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Configure GitHub webhooks to automatically track commits</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-2">
+                Repository URL
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <GitBranch size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                  <input
+                    type="url"
+                    value={webhookRepoUrl}
+                    onChange={(e) => setWebhookRepoUrl(e.target.value)}
+                    placeholder="https://github.com/username/repository"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+                  />
+                </div>
+                <button
+                  onClick={checkWebhook}
+                  disabled={webhookLoading}
+                  className="px-4 py-2.5 rounded-xl border border-[var(--color-border)] hover:bg-white/5 disabled:opacity-50 transition-colors text-sm font-medium text-[var(--color-text-primary)]"
+                >
+                  {webhookLoading ? <Loader2 size={16} className="animate-spin" /> : "Check"}
+                </button>
+              </div>
+            </div>
+
+            {webhookMessage && (
+              <div className={`flex items-start gap-2 p-3 rounded-xl text-sm ${
+                webhookMessage.type === "success" ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400" :
+                webhookMessage.type === "error" ? "bg-red-500/10 border border-red-500/20 text-red-400" :
+                "bg-blue-500/10 border border-blue-500/20 text-blue-400"
+              }`}>
+                {webhookMessage.type === "success" ? <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" /> :
+                 webhookMessage.type === "error" ? <XCircle size={16} className="mt-0.5 flex-shrink-0" /> :
+                 <Info size={16} className="mt-0.5 flex-shrink-0" />}
+                <span>{webhookMessage.text}</span>
+              </div>
+            )}
+
+            {webhookStatus && !webhookStatus.exists && (
+              <button
+                onClick={createWebhook}
+                disabled={webhookLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 disabled:opacity-50 transition-colors text-sm font-medium"
+              >
+                {webhookLoading ? <Loader2 size={16} className="animate-spin" /> : <><Terminal size={16} />Create Webhook</>}
+              </button>
+            )}
+
+            {webhookStatus && webhookStatus.exists && webhookStatus.webhook && (
+              <div className="bg-[var(--color-surface)] rounded-xl p-4 border border-[var(--color-border)]">
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[var(--color-text-muted)]">Status:</span>
+                    <span className="ml-2 font-medium text-emerald-400">{webhookStatus.webhook.active ? "Active" : "Inactive"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--color-text-muted)]">Events:</span>
+                    <span className="ml-2 font-medium text-[var(--color-text-primary)]">{webhookStatus.webhook.events?.join(", ")}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[var(--color-text-muted)]">Endpoint:</span>
+                    <div className="mt-1 font-mono text-[10px] text-blue-400 break-all bg-blue-500/5 px-2 py-1 rounded">
+                      {webhookStatus.webhook.url}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {loading && commits.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-[var(--color-text-muted)]">
@@ -1071,9 +1256,17 @@ function CommitsTab() {
             Configure a GitHub webhook to your endpoint to see automated summaries here.
           </p>
         </div>
+      ) : filteredCommits.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl border-dashed">
+          <GitBranch size={40} className="mb-4 text-[var(--color-text-muted)] opacity-20" />
+          <h3 className="text-sm font-semibold text-[var(--color-text-secondary)]">No commits for {selectedRepo}</h3>
+          <p className="text-xs text-[var(--color-text-muted)] max-w-[250px] mt-2 leading-relaxed">
+            Try selecting a different repository from the dropdown.
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {commits.map((c, i) => (
+          {filteredCommits.map((c, i) => (
             <div
               key={c.hash + i}
               className="group bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-5 hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden"

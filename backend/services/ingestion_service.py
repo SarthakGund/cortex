@@ -306,8 +306,8 @@ class IngestionService:
 
         # 5. Create Webhook
         try:
-            from services.github_service import github_service
-            github_service.create_webhook(repo_url, github_token=request_token)
+            from services.github_service import github_webhook_service
+            github_webhook_service.create_webhook(repo_url, github_token=request_token)
         except Exception as e:
             print(f"  [ERROR] Webhook setup failed: {e}")
 
