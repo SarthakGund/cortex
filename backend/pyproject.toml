@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "celery==5.3.6",
     "fastapi==0.109.2",
-    "google-generativeai>=0.8.6",
+    "google-genai>=1.0.0",
     "langchain==0.1.5",
     "langchain-openai==0.0.5",
     "neo4j==5.17.0",
@@ -27,7 +27,7 @@ dependencies = [
     "tree-sitter-typescript>=0.23.2",
     "uvicorn==0.27.1",
     # AI / ML
-    "google-generativeai>=0.8.0",
+    "google-genai>=1.0.0",
     "sentence-transformers>=5.2.0",
     "chromadb>=1.5.0",
     # Code parsers

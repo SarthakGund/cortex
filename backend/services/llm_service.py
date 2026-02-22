@@ -1,4 +1,5 @@
 import json
+from google import genai
 from core.config import settings
 
 # Try to import Gemini, but don't fail if it's not available
@@ -22,6 +23,7 @@ class LLMService:
             self.enabled = True
         else:
             print("[LLM] GEMINI_API_KEY not set. LLM validation disabled.")
+            self._client = None
             self.enabled = False
             self.model = None
 
@@ -66,7 +68,10 @@ Source file: {file_name}
 JSON array:
 """
         try:
-            response = self.model.generate_content(prompt)
+            response = self._client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+            )
             text = response.text.strip()
 
             # Strip markdown code fences if Gemini wraps them anyway

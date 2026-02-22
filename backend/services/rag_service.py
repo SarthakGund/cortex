@@ -20,7 +20,7 @@ from typing import Any, Optional
 
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-import google.generativeai as genai
+from google import genai
 
 from core.config import settings
 from services.graph_service import graph_service
@@ -95,8 +95,7 @@ class RAGService:
 
         # --- Gemini ---
         if settings.GEMINI_API_KEY:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self._llm = genai.GenerativeModel("gemini-2.0-flash")
+            self._llm = genai.Client(api_key=settings.GEMINI_API_KEY)
             self._llm_enabled = True
         else:
             print("[RAG] GEMINI_API_KEY not set – answers will be context-only.")
@@ -356,12 +355,13 @@ Question: {question}
 Answer:"""
 
         try:
-            response = self._llm.generate_content(
-                prompt,
-                generation_config={
-                    "temperature": 0.2,      # low temp for factual architecture answers
-                    "max_output_tokens": 2048,
-                },
+            response = self._llm.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=genai.types.GenerateContentConfig(
+                    temperature=0.2,
+                    max_output_tokens=2048,
+                ),
             )
             answer_text = response.text.strip()
         except Exception as e:
@@ -433,9 +433,13 @@ User: {query}
 Assistant:"""
 
         try:
-            response = self._llm.generate_content(
-                prompt,
-                generation_config={"temperature": 0.2, "max_output_tokens": 2048},
+            response = self._llm.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=genai.types.GenerateContentConfig(
+                    temperature=0.2,
+                    max_output_tokens=2048,
+                ),
             )
             answer_text = response.text.strip()
         except Exception as e:
