@@ -416,7 +416,7 @@ export default function ScaffoldPage() {
               <textarea
                 value={requirements}
                 onChange={(e) => setRequirements(e.target.value)}
-                placeholder="Describe your system in natural language…&#10;&#10;e.g. An e-commerce platform with user authentication, product catalog, order management, payments via Stripe, and email notifications. The catalog should be search-heavy. Orders need to trigger email + SMS. Use event-driven communication where possible."
+                placeholder="Describe your system in natural language and detailed…"
                 rows={8}
                 className="w-full bg-slate-100/60 border border-slate-300 rounded-xl p-4 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 resize-none font-mono transition-colors"
               />

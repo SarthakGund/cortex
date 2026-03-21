@@ -139,7 +139,7 @@ function styleEdges(raw: Edge[]): Edge[] {
   return raw.map(e => ({
     ...e,
     type: 'default',
-    style: { stroke: '#ffffff40', strokeWidth: 1.8 },
+    style: { stroke: '#33415580', strokeWidth: 1.8 },
     label: undefined,
   }))
 }
@@ -209,7 +209,7 @@ function BrainNode({ data, selected }: NodeProps<BrainNodeData>) {
           fontSize: 10,
           fontFamily: 'ui-monospace, monospace',
           letterSpacing: '0.01em',
-          color: selected ? '#e2e8f0' : '#647080',
+          color: selected ? '#0f172a' : '#64748b',
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
           textShadow: selected ? `0 0 8px ${sty.color}` : 'none',
@@ -264,10 +264,10 @@ function NodeSidebar({
     <div
       className="absolute right-4 top-4 z-20 w-80 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
       style={{
-        border: `1px solid ${sty.color}25`,
-        background: 'rgba(10,12,18,0.97)',
+        border: `1px solid ${sty.color}35`,
+        background: 'rgba(255,255,255,0.97)',
         backdropFilter: 'blur(16px)',
-        boxShadow: `0 0 40px ${sty.color}15, 0 8px 32px #00000080`,
+        boxShadow: `0 0 32px ${sty.color}18, 0 8px 32px #00000018`,
         maxHeight: 'calc(100vh - 120px)',
       }}
     >
@@ -291,7 +291,7 @@ function NodeSidebar({
             <Icon size={15} />
           </div>
           <div className="min-w-0">
-            <div className="font-semibold text-sm truncate" style={{ color: sty.text }}>
+            <div className="font-semibold text-sm truncate" style={{ color: sty.color }}>
               {label}
             </div>
             <div className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: sty.color + 'aa' }}>
@@ -301,7 +301,7 @@ function NodeSidebar({
         </div>
         <button
           onClick={onClose}
-          className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-600 hover:text-slate-900 hover:bg-black/10 transition-colors ml-2"
+          className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:text-slate-900 hover:bg-black/10 transition-colors ml-2"
         >
           <X size={13} />
         </button>
@@ -311,14 +311,14 @@ function NodeSidebar({
       <div className="overflow-y-auto flex-1 min-h-0">
 
         {/* Properties */}
-        {Object.entries(props).length > 0 && (
+        {Object.entries(props).filter(([k]) => k !== "file_path" && k !== "last_updated").length > 0 && (
           <div className="px-4 pt-3 pb-2">
-            <div className="text-[10px] uppercase tracking-widest text-gray-600 mb-2 font-semibold">Properties</div>
+            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2 font-semibold">Properties</div>
             <div className="space-y-1.5 text-xs">
-              {Object.entries(props).map(([k, v]) => (
+              {Object.entries(props).filter(([k]) => k !== "file_path" && k !== "last_updated").map(([k, v]) => (
                 <div key={k} className="flex gap-2 items-start">
-                  <span className="text-gray-600 w-24 flex-shrink-0 truncate pt-0.5 font-mono">{k}</span>
-                  <span className="text-gray-600 break-all">{formatPropValue(v)}</span>
+                  <span className="text-gray-400 w-24 flex-shrink-0 truncate pt-0.5 font-mono">{k}</span>
+                  <span className="text-gray-700 break-all">{formatPropValue(v)}</span>
                 </div>
               ))}
             </div>
@@ -327,13 +327,13 @@ function NodeSidebar({
 
         {/* Divider */}
         {(outgoing.length > 0 || incoming.length > 0) && (
-          <div className="mx-4 my-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+          <div className="mx-4 my-1" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }} />
         )}
 
         {/* Outgoing relationships */}
         {outgoing.length > 0 && (
           <div className="px-4 pt-2 pb-1">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-600 mb-2 font-semibold">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-400 mb-2 font-semibold">
               <ArrowRight size={10} className="text-emerald-500" />
               Outgoing ({outgoing.length})
             </div>
@@ -348,12 +348,12 @@ function NodeSidebar({
                     {r.rel && (
                       <span
                         className="px-1.5 py-0.5 rounded text-[9px] font-mono flex-shrink-0"
-                        style={{ background: 'rgba(255,255,255,0.05)', color: '#6b7280' }}
+                        style={{ background: 'rgba(0,0,0,0.06)', color: '#64748b' }}
                       >
                         {r.rel}
                       </span>
                     )}
-                    <ArrowRight size={9} className="flex-shrink-0" style={{ color: '#374151' }} />
+                    <ArrowRight size={9} className="flex-shrink-0" style={{ color: '#94a3b8' }} />
                     {/* target node */}
                     <div className="flex items-center gap-1.5 min-w-0">
                       <div
@@ -362,7 +362,7 @@ function NodeSidebar({
                       >
                         <TIcon size={9} />
                       </div>
-                      <span className="truncate" style={{ color: tSty.text }}>
+                      <span className="truncate" style={{ color: tSty.color }}>
                         {target?.data.label ?? r.targetId}
                       </span>
                     </div>
@@ -376,7 +376,7 @@ function NodeSidebar({
         {/* Incoming relationships */}
         {incoming.length > 0 && (
           <div className="px-4 pt-2 pb-3">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-600 mb-2 font-semibold">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-400 mb-2 font-semibold">
               <ArrowLeft size={10} className="text-violet-400" />
               Incoming ({incoming.length})
             </div>
@@ -395,7 +395,7 @@ function NodeSidebar({
                       >
                         <SIcon size={9} />
                       </div>
-                      <span className="truncate" style={{ color: sSty.text }}>
+                      <span className="truncate" style={{ color: sSty.color }}>
                         {source?.data.label ?? r.sourceId}
                       </span>
                     </div>
@@ -404,7 +404,7 @@ function NodeSidebar({
                     {r.rel && (
                       <span
                         className="px-1.5 py-0.5 rounded text-[9px] font-mono flex-shrink-0"
-                        style={{ background: 'rgba(255,255,255,0.05)', color: '#6b7280' }}
+                        style={{ background: 'rgba(0,0,0,0.06)', color: '#64748b' }}
                       >
                         {r.rel}
                       </span>
@@ -445,11 +445,11 @@ function FilterBar({
       <div
         className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 rounded-2xl"
         style={{
-          background: 'rgba(8,10,15,0.85)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(255,255,255,0.90)',
+          border: '1px solid rgba(0,0,0,0.08)',
           backdropFilter: 'blur(16px)',
           maxWidth: 'calc(100vw - 320px)',
-          boxShadow: '0 4px 24px #00000060',
+          boxShadow: '0 4px 24px #00000018',
         }}
       >
         {/* Master toggle */}
@@ -458,16 +458,16 @@ function FilterBar({
           title={allActive ? 'Hide all' : 'Show all'}
           className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium transition-all"
           style={{
-            background: allActive ? 'rgba(255,255,255,0.08)' : 'transparent',
-            border: '1px solid rgba(255,255,255,0.10)',
-            color: allActive ? '#e2e8f0' : '#4b5563',
+            background: allActive ? 'rgba(0,0,0,0.07)' : 'transparent',
+            border: '1px solid rgba(0,0,0,0.10)',
+            color: allActive ? '#0f172a' : '#94a3b8',
           }}
         >
           <LayoutGrid size={10} />
           {allActive ? 'All' : 'None'}
         </button>
 
-        <div className="w-px h-4 mx-0.5" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="w-px h-4 mx-0.5" style={{ background: 'rgba(0,0,0,0.08)' }} />
 
         {stats.map(s => {
           const sty = getStyle(s.label)
@@ -480,8 +480,8 @@ function FilterBar({
               className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium transition-all cursor-pointer select-none"
               style={{
                 background: isActive ? `${sty.color}18` : 'transparent',
-                border: `1px solid ${isActive ? sty.color + '55' : 'rgba(255,255,255,0.06)'}`,
-                color: isActive ? sty.text : '#4b5563',
+                border: `1px solid ${isActive ? sty.color + '55' : 'rgba(0,0,0,0.08)'}`,
+                color: isActive ? sty.color : '#94a3b8',
                 boxShadow: isActive ? `0 0 8px ${sty.color}30` : 'none',
                 opacity: isActive ? 1 : 0.45,
               }}
@@ -498,7 +498,7 @@ function FilterBar({
                 }}
               />
               <span>{s.label}</span>
-              <span style={{ color: isActive ? sty.color : '#374151', fontWeight: 700 }}>
+              <span style={{ color: isActive ? sty.color : '#cbd5e1', fontWeight: 700 }}>
                 {s.count}
               </span>
             </button>
@@ -579,7 +579,7 @@ export default function GraphView({ nodes: rawNodes, edges: rawEdges, stats }: G
   const clearAll  = useCallback(() => setActiveTypes(new Set()), [])
 
   return (
-    <div className="w-full h-full relative" style={{ background: '#0d1117' }}>
+    <div className="w-full h-full relative" style={{ background: '#f1f5f9' }}>
       {/* Pulse ring keyframe */}
       <style>{`
         @keyframes obsidian-ping {
@@ -602,11 +602,11 @@ export default function GraphView({ nodes: rawNodes, edges: rawEdges, stats }: G
         minZoom={0.03}
         maxZoom={5}
         proOptions={{ hideAttribution: true }}
-        style={{ background: '#0d1117' }}
+        style={{ background: '#f1f5f9' }}
       >
         <Background
           variant={BackgroundVariant.Dots}
-          color="rgba(255,255,255,0.04)"
+          color="rgba(0,0,0,0.10)"
           gap={32}
           size={1.2}
         />
@@ -616,8 +616,8 @@ export default function GraphView({ nodes: rawNodes, edges: rawEdges, stats }: G
         />
         <MiniMap
           nodeColor={(n: Node) => getStyle((n.data as BrainNodeData).nodeType).color}
-          maskColor="rgba(0,0,0,0.82)"
-          className="!bg-gray-50/90 !border-black/5 !rounded-2xl !shadow-2xl"
+          maskColor="rgba(241,245,249,0.75)"
+          className="!bg-white/95 !border-black/5 !rounded-2xl !shadow-2xl"
           style={{ backdropFilter: 'blur(12px)' }}
           nodeStrokeWidth={3}
           nodeStrokeColor={(n: Node) => getStyle((n.data as BrainNodeData).nodeType).color}

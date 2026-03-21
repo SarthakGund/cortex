@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "./context/AuthContext";
+import AuthGate from "./components/AuthGate";
 
 
 
 export const metadata: Metadata = {
-  title: "SPIT KAG·RAG — Knowledge Graph Intelligence",
+  title: "Weavr — Knowledge Graph Intelligence",
   description:
     "Ask questions about your codebase using a Knowledge-Augmented Graph (KAG) powered RAG pipeline with Gemini LLM.",
   openGraph: {
-    title: "SPIT KAG·RAG",
+    title: "Weavr",
     description: "AI-powered codebase intelligence powered by Neo4j + ChromaDB + Gemini.",
     type: "website",
   },
@@ -21,7 +23,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <AuthProvider>
+          <AuthGate>{children}</AuthGate>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

@@ -28,8 +28,10 @@ import {
   FolderOpen,
   FileCode2,
   ShieldCheck,
+  LogOut,
 } from "lucide-react";
 import { FileTree, TreeNode } from "./components/FileTree";
+import { useAuth } from "./context/AuthContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -299,22 +301,7 @@ function IngestTab() {
   const [clearing, setClearing] = useState(false);
   const [stats, setStats] = useState<VectorStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [githubToken, setGithubToken] = useState("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get("token");
-      if (token) {
-        setGithubToken(token);
-        localStorage.setItem("github_token", token);
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } else {
-        const stored = localStorage.getItem("github_token");
-        if (stored) setGithubToken(stored);
-      }
-    }
-  }, []);
+  const { token: githubToken, logout: handleGithubLogout } = useAuth();
   // Multi-repo state
   const [multiMode, setMultiMode] = useState(false);
   const [repoList, setRepoList] = useState<string[]>([""]);
@@ -501,6 +488,37 @@ function IngestTab() {
           Fetch code from GitHub API and build the Knowledge Graph in Neo4j — no local clone needed
         </p>
       </div>
+    </div>
+
+    {/* GitHub Connection Status */}
+    <div className="flex items-center justify-between mb-5 p-3 bg-slate-800/20 rounded-xl border border-[var(--color-border)]">
+      <div className="flex items-center gap-3">
+        <Code2 size={16} className={githubToken ? "text-emerald-400" : "text-[var(--color-text-muted)]"} />
+        <div>
+          <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+            {githubToken ? "GitHub Connected" : "GitHub OAuth Not Connected"}
+          </p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+            Connect to access private repos &amp; attach webhooks.
+          </p>
+        </div>
+      </div>
+      {githubToken ? (
+        <button
+          type="button"
+          onClick={handleGithubLogout}
+          className="text-xs text-red-400 hover:text-red-300 font-medium px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
+        >
+          Disconnect
+        </button>
+      ) : (
+        <a
+          href={`${API}/auth/github/login`}
+          className="text-xs font-semibold px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 rounded-lg transition-all"
+        >
+          Connect GitHub
+        </a>
+      )}
     </div>
 
     {/* Ingest Form */}
@@ -733,16 +751,16 @@ function ChatTab() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // useEffect(() => {
+  //   bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  // }, [messages]);
 
-  const autoResize = () => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = "auto";
-    ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
-  };
+  // const autoResize = () => {
+  //   const ta = textareaRef.current;
+  //   if (!ta) return;
+  //   ta.style.height = "auto";
+  //   ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+  // };
 
   const handleSend = async () => {
     const q = input.trim();
@@ -1448,10 +1466,27 @@ type Tab = "chat" | "ingest" | "commits" | "explorer";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("chat");
+  const { logout } = useAuth();
+
+  const handleStartChat = () => {
+    setTab("chat");
+    setTimeout(() => {
+      if (typeof document !== "undefined") {
+        const el = document.getElementById("chat-input");
+        if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
+          el.focus();
+        }
+      }
+    }, 50);
+  };
+
+  const handleGoToIngest = () => {
+    setTab("ingest");
+  };
 
   const tabs: { id?: Tab; href?: string; label: string; icon: React.ReactNode }[] = [
-    { id: "ingest", label: "Ingest & Sync", icon: <Database size={15} /> },
     { id: "chat", label: "Q&A Chat", icon: <MessageSquare size={15} /> },
+    { id: "ingest", label: "Ingest & Sync", icon: <Database size={15} /> },
     { href: "/scaffold", label: "Scaffold", icon: <Sparkles size={15} /> },
     { href: "/impact", label: "What-If", icon: <AlertCircle size={15} /> },
     { href: "/timeline", label: "Timeline", icon: <Activity size={15} /> },
@@ -1512,29 +1547,87 @@ export default function Home() {
               )
             ))}
           </nav>
+
+          {/* Logout */}
+          <button
+            onClick={logout}
+            title="Sign out"
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-all"
+          >
+            <LogOut size={14} />
+            Sign out
+          </button>
         </div>
       </header>
 
       {/* Main */}
       <main className="max-w-5xl mx-auto px-4 py-6">
-        {/* Hero (chat tab only) */}
+        {/* Hero (shown right after auth, default on chat tab) */}
         {tab === "chat" && (
-          <div className="mb-6 text-center fade-in-up">
-            {/* <div className="inline-flex items-center gap-2 text-xs font-medium text-blue-400 bg-blue-400/10 border border-blue-400/20 rounded-full px-3 py-1 mb-3">
-              <Sparkles size={11} />
-              RAG-powered · Knowledge Graph · Semantic Search
-            </div> */}
-            <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] mb-1">
-              Ask your{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                codebase
-              </span>{" "}
-              anything
-            </h2>
-            {/* <p className="text-sm text-[var(--color-text-muted)]">
-              Neo4j Knowledge Graph → ChromaDB embeddings → Gemini answers
-            </p> */}
-          </div>
+          <section className="mb-6 fade-in-up">
+            <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-5 py-4 sm:px-8 sm:py-6">
+              <div className="pointer-events-none absolute inset-y-0 right-[-80px] w-64 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.25),_transparent_60%),_radial-gradient(circle_at_bottom,_rgba(244,63,94,0.18),_transparent_55%)] opacity-60" />
+
+              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 mb-3">
+                    <Sparkles size={11} className="text-[var(--color-accent)]" />
+                    <span className="text-[11px] font-medium text-[var(--color-text-muted)]">
+                      GitHub-native Knowledge Assistant
+                    </span>
+                  </div>
+
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] mb-1">
+                    Welcome to your
+                    {" "}
+                    <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                      codebase co‑pilot
+                    </span>
+                  </h2>
+                  <p className="text-sm text-[var(--color-text-muted)] max-w-xl">
+                    Ingest GitHub repos into a Neo4j knowledge graph, sync them into a vector store,
+                    and ask multi‑hop questions about architecture, dependencies, and impact.
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                    <button
+                      onClick={handleGoToIngest}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-xs font-semibold text-black shadow-sm hover:brightness-110 transition-all"
+                    >
+                      <Database size={14} />
+                      Ingest a repo
+                    </button>
+                    <button
+                      onClick={handleStartChat}
+                      className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold text-[var(--color-text-primary)] hover:border-[var(--color-accent)] transition-all"
+                    >
+                      <MessageSquare size={14} />
+                      Ask a question
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-1 gap-2 text-xs min-w-[180px]">
+                  {/* <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-0.5">
+                      Stack
+                    </p>
+                    <p className="text-[11px] text-[var(--color-text-secondary)]">
+                      Neo4j · ChromaDB · Gemini 2.0
+                    </p> */}
+                  {/* </div> */}
+                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-0.5">
+                      Best for
+                    </p>
+                    <p className="text-[11px] text-[var(--color-text-secondary)]">
+                      Impact analysis, dependency maps, architecture Q&A
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         )}
 
         {tab === "ingest" && (

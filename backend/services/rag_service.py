@@ -528,9 +528,13 @@ Question: {question}
 Answer:"""
 
         try:
-            response = self._llm.generate_content(
-                prompt,
-                generation_config={"temperature": 0.15, "max_output_tokens": 3072},
+            response = self._llm.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=genai.types.GenerateContentConfig(
+                    temperature=0.15,
+                    max_output_tokens=3072,
+                ),
             )
             answer_text = response.text.strip()
         except Exception as e:
@@ -574,9 +578,13 @@ Instructions:
 Cypher:"""
 
         try:
-            response = self._llm.generate_content(
-                prompt,
-                generation_config={"temperature": 0.0, "max_output_tokens": 512},
+            response = self._llm.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=genai.types.GenerateContentConfig(
+                    temperature=0.0,
+                    max_output_tokens=512,
+                ),
             )
             raw = response.text.strip()
             # Strip markdown fences

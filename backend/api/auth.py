@@ -36,9 +36,7 @@ def github_callback(code: str):
     data = response.json()
     access_token = data.get("access_token")
 
-    # In a real app, you'd get the frontend URL from config
-    # We will assume localhost:3000 for this demo
-    frontend_url = "http://localhost:3000"
+    frontend_url = settings.FRONTEND_URL
     
     if access_token:
         return RedirectResponse(f"{frontend_url}?token={access_token}")

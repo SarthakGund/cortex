@@ -20,6 +20,7 @@ class WebhookPayload(BaseModel):
     ref: Optional[str] = None  # e.g. 'refs/heads/main'
     # Add more fields as needed for your VCS
 
+@router.post("")
 @router.post("/")
 async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
     # Read raw body for signature verification
@@ -99,7 +100,7 @@ async def check_webhook(request: WebhookCheckRequest):
     from core.config import settings
     
     token = request.github_token or settings.GITHUB_TOKEN
-    webhook_url = 'https://spectrum-suspension-paradise-magnet.trycloudflare.com/webhook/'
+    webhook_url = 'https://antique-motherboard-unsigned-howard.trycloudflare.com/webhook/'
     
     if not token:
         raise HTTPException(status_code=400, detail="GitHub token not provided")
