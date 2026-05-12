@@ -87,7 +87,7 @@ async def suggest_doc(
     node_type: str = Body(..., description="Node type (Function, Class, Endpoint, …)"),
 ):
     """
-    Use the knowledge graph + Gemini to auto-generate documentation for an
+    Use the knowledge graph + LLM to auto-generate documentation for an
     undocumented node.  Returns a ready-to-use description draft.
     """
     return neo4j_health_service.generate_doc_suggestion(name, node_type)

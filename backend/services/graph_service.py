@@ -32,6 +32,7 @@ class GraphService:
             MERGE (s:Service {name: $name})
             SET s.description  = $description,
                 s.language     = $language,
+                s.service      = $name,
                 s.last_updated = datetime()
             RETURN s
         """, name=name, description=description, language=language)

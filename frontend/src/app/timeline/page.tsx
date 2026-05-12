@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Loader2, Zap, Plus, RefreshCcw, Trash2,
   ArrowRight, Calendar, Camera, ChevronLeft, Box,
   Network, Diff, GitCompare
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -48,23 +49,12 @@ interface SnapshotDiff {
 
 export default function TimeTravelPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-50 border-b border-black/5 bg-slate-50/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center gap-3">
-          <a href="/" className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors">
-            <Zap size={18} className="text-indigo-400" />
-            <span className="font-semibold">SPIT</span>
-          </a>
-          <span className="text-slate-700">/</span>
-          <div className="flex items-center gap-2">
-            <Camera size={16} className="text-purple-400" />
-            <span className="font-semibold text-slate-900">Graph Snapshots</span>
-          </div>
-        </div>
-      </header>
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <GraphSnapshotsView />
-      </main>
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Graph Snapshots</h1>
+        <p className="text-sm text-[var(--color-text-muted)]">Capture and compare graph states over time.</p>
+      </div>
+      <GraphSnapshotsView />
     </div>
   );
 }
@@ -91,6 +81,11 @@ function NodeTag({ label, name }: { label: string; name: string }) {
 }
 
 function GraphSnapshotsView() {
+  const { token } = useAuth();
+  const authHeaders = useMemo(() => {
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  }, [token]);
   const [snapshots, setSnapshots] = useState<GraphSnapshotSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [capturing, setCapturing] = useState(false);
@@ -105,7 +100,7 @@ function GraphSnapshotsView() {
   const fetchSnapshots = async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/snapshots/`);
+      const r = await fetch(`${API}/snapshots/`, { headers: authHeaders });
       if (r.ok) setSnapshots(await r.json());
     } catch { /* ignore */ }
     setLoading(false);
@@ -116,7 +111,7 @@ function GraphSnapshotsView() {
     try {
       await fetch(`${API}/snapshots/capture`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ label: `Manual — ${new Date().toLocaleString()}` }),
       });
       setTimeout(fetchSnapshots, 1500);
@@ -130,7 +125,7 @@ function GraphSnapshotsView() {
     setMode("detail");
     setDetailLoading(true);
     try {
-      const r = await fetch(`${API}/snapshots/${id}`);
+      const r = await fetch(`${API}/snapshots/${id}`, { headers: authHeaders });
       if (r.ok) setDetail(await r.json());
     } catch { /* ignore */ }
     setDetailLoading(false);
@@ -142,7 +137,7 @@ function GraphSnapshotsView() {
     setDiffLoading(true);
     setDiff(null);
     try {
-      const r = await fetch(`${API}/snapshots/diff/${a}/${b}`);
+      const r = await fetch(`${API}/snapshots/diff/${a}/${b}`, { headers: authHeaders });
       if (r.ok) setDiff(await r.json());
     } catch { /* ignore */ }
     setDiffLoading(false);

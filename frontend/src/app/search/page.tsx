@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -21,6 +21,7 @@ import {
   Activity,
   AlertCircle,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -72,6 +73,11 @@ const TYPE_ICONS: Record<string, string> = {
 /* ── Page ───────────────────────────────────────────────────────────────────── */
 
 export default function SearchPage() {
+  const { token } = useAuth();
+  const authHeaders = useMemo(() => {
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  }, [token]);
   const [query, setQuery] = useState("");
   const [nodeType, setNodeType] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
@@ -85,12 +91,12 @@ export default function SearchPage() {
 
   // Fetch graph stats on mount
   useEffect(() => {
-    fetch(`${API}/graph/stats`)
+    fetch(`${API}/graph/stats`, { headers: authHeaders })
       .then((r) => r.json())
       .then((d) => setGraphStats(d.stats || []))
       .catch(() => {});
     // Fetch services for filter
-    fetch(`${API}/impact/search?q=&node_type=Service&limit=100`)
+    fetch(`${API}/impact/search?q=&node_type=Service&limit=100`, { headers: authHeaders })
       .then((r) => r.json())
       .then((d) => setServices((d.results || []).map((r: SearchResult) => r.name)))
       .catch(() => {});
@@ -108,7 +114,7 @@ export default function SearchPage() {
         params.set("q", q || " ");
         if (type) params.set("node_type", type);
         params.set("limit", "50");
-        const r = await fetch(`${API}/impact/search?${params}`);
+        const r = await fetch(`${API}/impact/search?${params}`, { headers: authHeaders });
         const d = await r.json();
         setResults(d.results || []);
       } catch {
@@ -152,12 +158,12 @@ export default function SearchPage() {
       const url = `${API}/graph/export/${format}?${params}`;
 
       if (format === "json") {
-        const r = await fetch(url);
+        const r = await fetch(url, { headers: authHeaders });
         const d = await r.json();
         const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
         downloadBlob(blob, `graph_export.json`);
       } else {
-        const r = await fetch(url);
+        const r = await fetch(url, { headers: authHeaders });
         const text = await r.text();
         const mimeType = format === "csv" ? "text/csv" : "text/plain";
         const blob = new Blob([text], { type: mimeType });
@@ -184,54 +190,11 @@ export default function SearchPage() {
   const totalNodes = graphStats.reduce((s, g) => s + g.count, 0);
 
   return (
-    <div className="min-h-screen bg-grid">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-background)]/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)] transition-all"
-            >
-              <ArrowLeft size={18} />
-            </Link>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-              <Search size={18} className="text-slate-900" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-[var(--color-text-primary)] leading-none">
-                Graph Search & Export
-              </h1>
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 leading-none">
-                Find, filter, and export knowledge graph data
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Link
-              href="/graph"
-              className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors"
-            >
-              <Network size={10} /> Graph
-            </Link>
-            <Link
-              href="/impact"
-              className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500/20 transition-colors"
-            >
-              <AlertCircle size={10} /> What-If
-            </Link>
-            <Link
-              href="/timeline"
-              className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-            >
-              <Activity size={10} /> Timeline
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Graph Search & Export</h1>
+        <p className="text-sm text-[var(--color-text-muted)]">Find, filter, and export knowledge graph data.</p>
+      </div>
         {/* Stats overview */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           <div className="col-span-2 sm:col-span-4 lg:col-span-2 bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col gap-1">
@@ -501,24 +464,6 @@ export default function SearchPage() {
             </p>
           </div>
         )}
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-[var(--color-border)] py-4 mt-8">
-        <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
-          <p className="text-xs text-[var(--color-text-muted)]">
-            SPIT Hackathon 2026 · Graph Search & Export
-          </p>
-          <div className="flex items-center gap-4 text-xs text-[var(--color-text-muted)]">
-            <span className="flex items-center gap-1">
-              <Database size={10} /> Neo4j
-            </span>
-            <span className="flex items-center gap-1">
-              <Sparkles size={10} /> Gemini
-            </span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

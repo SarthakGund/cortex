@@ -1,43 +1,74 @@
 import json
+from types import SimpleNamespace
+import httpx
 from core.config import settings
 
-# Try to import Gemini, but don't fail if it's not available
-try:
-    import google.generativeai as genai
-    GENAI_AVAILABLE = True
-except ImportError as e:
-    print(f"[LLM] google.generativeai not available: {e}")
-    GENAI_AVAILABLE = False
-    genai = None
+
+class GroqModel:
+    def __init__(self, api_key: str, model: str):
+        self.api_key = api_key
+        self.model = model
+        self.base_url = "https://api.groq.com/openai/v1"
+
+    def generate_content(self, prompt: str, temperature: float = 0.2, max_output_tokens: int = 2048):
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": max_output_tokens,
+        }
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        with httpx.Client(timeout=60) as client:
+            try:
+                resp = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                detail = exc.response.text
+                raise RuntimeError(
+                    f"Groq API error {exc.response.status_code}: {detail}"
+                ) from exc
+
+            data = resp.json()
+            text = data["choices"][0]["message"]["content"]
+            return SimpleNamespace(text=text)
 
 class LLMService:
     def __init__(self):
-        self._client = None
         self.model = None
         self.enabled = False
-        
-        if not GENAI_AVAILABLE:
-            print("[LLM] google.generativeai not installed. LLM features disabled.")
-        elif settings.GEMINI_API_KEY:
+
+        if settings.GROQ_API_KEY:
+            model_name = settings.GROQ_MODEL or "llama-3.1-70b-versatile"
             try:
-                genai.configure(api_key=settings.GEMINI_API_KEY)
-                self.model = genai.GenerativeModel("gemini-flash-latest")
-                self._client = genai
+                self.model = GroqModel(settings.GROQ_API_KEY, model_name)
                 self.enabled = True
-                print("[LLM] ✅ Gemini configured successfully")
+                print(f"[LLM] ✅ Groq configured successfully ({model_name})")
             except Exception as e:
-                print(f"[LLM] Failed to configure Gemini: {e}")
+                print(f"[LLM] Failed to configure Groq: {e}")
         else:
-            print("[LLM] GEMINI_API_KEY not set. LLM validation disabled.")
+            print("[LLM] GROQ_API_KEY not set. LLM features disabled.")
+
+    def generate_text(self, prompt: str, temperature: float = 0.2, max_output_tokens: int = 2048) -> str:
+        if not self.enabled or not self.model:
+            raise RuntimeError("LLM not configured")
+        response = self.model.generate_content(
+            prompt,
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+        )
+        return response.text.strip()
 
     def validate_and_fix_endpoints(self, code: str, raw_endpoints: list, file_name: str) -> list:
         """
-        Takes the raw endpoints extracted by Tree-sitter and asks Gemini to:
+        Takes the raw endpoints extracted by Tree-sitter and asks the LLM to:
         1. Correct any malformed paths (e.g. stripped quotes, wrong slashes)
         2. Find any endpoints that Tree-sitter MISSED
         3. Return a clean JSON list
 
-        We only call Gemini if Tree-sitter found at least something, or the
+        We only call the LLM if Tree-sitter found at least something, or the
         file name suggests it contains routes (route, controller, view, handler).
         This avoids wasting API calls on non-route files.
         """
@@ -71,10 +102,9 @@ Source file: {file_name}
 JSON array:
 """
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
+            text = self.generate_text(prompt, temperature=0.1, max_output_tokens=1024)
 
-            # Strip markdown code fences if Gemini wraps them anyway
+            # Strip markdown code fences if the LLM wraps them anyway
             if text.startswith("```"):
                 text = text.split("```")[1]
                 if text.startswith("json"):
@@ -98,7 +128,7 @@ JSON array:
             return cleaned
 
         except Exception as e:
-            print(f"  [LLM] Gemini call failed for {file_name}: {e}. Using Tree-sitter results.")
+            print(f"  [LLM] LLM call failed for {file_name}: {e}. Using Tree-sitter results.")
             return raw_endpoints
 
 llm_service = LLMService()

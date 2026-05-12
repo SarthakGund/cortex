@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Query as QParam
+from fastapi import APIRouter, Query as QParam, Request
 from fastapi.responses import PlainTextResponse
 from services.graph_service import graph_service
+from services.user_repo_service import user_repo_service
 import json
 
 router = APIRouter(prefix="/graph", tags=["Graph"])
@@ -43,16 +44,20 @@ def _node_color(node) -> str:
 
 
 @router.get("/")
-def get_full_graph(limit: int = QParam(default=500, le=2000)):
+def get_full_graph(request: Request, limit: int = QParam(default=500, le=2000)):
     """
     Returns the full knowledge graph as React Flow-compatible nodes + edges.
     Each node carries all Neo4j properties for the tooltip/sidebar panel.
     Query: MATCH (n)-[r]->(m) RETURN n, r, m  LIMIT $limit
     """
+    user = user_repo_service.require_user(request)
+    repo = user_repo_service.get_active_repo(user)
+
     with graph_service.driver.session() as session:
         result = session.run(
-            "MATCH (n)-[r]->(m) RETURN n, r, m LIMIT $limit",
-            limit=limit
+            "MATCH (n)-[r]->(m) WHERE n.service = $service AND m.service = $service RETURN n, r, m LIMIT $limit",
+            service=repo.repo_key,
+            limit=limit,
         )
 
         seen_nodes: dict[str, dict] = {}
@@ -109,11 +114,14 @@ def get_full_graph(limit: int = QParam(default=500, le=2000)):
 
 
 @router.get("/service/{service_name}")
-def get_service_subgraph(service_name: str):
+def get_service_subgraph(request: Request, service_name: str):
     """
     Returns the subgraph rooted at a specific Service node —
     all nodes reachable within 4 hops. Used for per-service drill-down.
     """
+    user = user_repo_service.require_user(request)
+    repo = user_repo_service.get_active_repo(user)
+
     with graph_service.driver.session() as session:
         result = session.run(
             """
@@ -121,7 +129,7 @@ def get_service_subgraph(service_name: str):
             UNWIND relationships(path) AS r
             RETURN startNode(r) AS n, r, endNode(r) AS m
             """,
-            name=service_name
+            name=service_name,
         )
 
         seen_nodes: dict[str, dict] = {}
@@ -162,20 +170,24 @@ def get_service_subgraph(service_name: str):
 
 
 @router.get("/stats")
-def get_graph_stats():
+def get_graph_stats(request: Request):
     """Dashboard stats: total count of each node label."""
+    user = user_repo_service.require_user(request)
+    repo = user_repo_service.get_active_repo(user)
     with graph_service.driver.session() as session:
         result = session.run("""
             MATCH (n)
+            WHERE n.service = $service
             UNWIND labels(n) AS lbl
             RETURN lbl AS label, count(*) AS count
             ORDER BY count DESC
-        """)
+        """, service=repo.repo_key)
         return {"stats": [{"label": r["label"], "count": r["count"]} for r in result]}
 
 
 @router.get("/export/csv")
 def export_graph_csv(
+    request: Request,
     node_type: str | None = QParam(None, description="Filter by node label"),
     service: str | None = QParam(None, description="Filter by service name"),
 ):
@@ -184,9 +196,15 @@ def export_graph_csv(
     params: dict = {}
     if node_type:
         conditions.append(f"n:{node_type}")
+    user = user_repo_service.require_user(request)
+    repo = user_repo_service.get_active_repo(user)
+
     if service:
         conditions.append("n.service = $service")
         params["service"] = service
+    else:
+        conditions.append("n.service = $active_service")
+        params["active_service"] = repo.repo_key
 
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     query = f"MATCH (n) {where} RETURN n LIMIT 5000"
@@ -213,6 +231,7 @@ def export_graph_csv(
 
 @router.get("/export/json")
 def export_graph_json(
+    request: Request,
     node_type: str | None = QParam(None, description="Filter by node label"),
     service: str | None = QParam(None, description="Filter by service name"),
     include_edges: bool = QParam(True),
@@ -222,9 +241,15 @@ def export_graph_json(
     params: dict = {}
     if node_type:
         conditions.append(f"n:{node_type}")
+    user = user_repo_service.require_user(request)
+    repo = user_repo_service.get_active_repo(user)
+
     if service:
         conditions.append("n.service = $service")
         params["service"] = service
+    else:
+        conditions.append("n.service = $active_service")
+        params["active_service"] = repo.repo_key
 
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 

@@ -327,14 +327,14 @@ Keep the tone technical but concise. Do NOT use markdown headers or code fences.
                     f"{name} is a {node_type} component in the system.\n\n"
                     "• Connects to: " + out_str + "\n"
                     "• Used by: " + in_str + "\n\n"
-                    "(LLM not configured — add GEMINI_API_KEY for richer suggestions.)"
+                    "(LLM not configured — add GROQ_API_KEY for richer suggestions.)"
                 ),
                 "source": "fallback",
             }
 
         try:
             response = llm_service.model.generate_content(prompt)
-            return {"name": name, "node_type": node_type, "suggestion": response.text.strip(), "source": "gemini"}
+            return {"name": name, "node_type": node_type, "suggestion": response.text.strip(), "source": "llm"}
         except Exception as e:
             return {"name": name, "node_type": node_type, "suggestion": f"Generation failed: {e}", "source": "error"}
 
@@ -392,14 +392,14 @@ Keep it concise and professional. Do NOT use code fences."""
                     "This documentation has been flagged as outdated. "
                     "Please review and update the following sections:\n\n"
                     "• Overview\n• API reference\n• Configuration\n\n"
-                    "(Add GEMINI_API_KEY for AI-generated content.)"
+                    "(Add GROQ_API_KEY for AI-generated content.)"
                 ),
                 "source": "fallback",
             }
 
         try:
             response = llm_service.model.generate_content(prompt)
-            return {"doc_name": doc_name, "suggestion": response.text.strip(), "source": "gemini"}
+            return {"doc_name": doc_name, "suggestion": response.text.strip(), "source": "llm"}
         except Exception as e:
             return {"doc_name": doc_name, "suggestion": f"Generation failed: {e}", "source": "error"}
 

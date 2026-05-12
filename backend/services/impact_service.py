@@ -15,42 +15,42 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from google import genai
-
-from core.config import settings
+from services.llm_service import llm_service
 from services.graph_service import graph_service
-
-
-def _get_llm():
-    if not settings.GEMINI_API_KEY:
-        return None
-    return genai.Client(api_key=settings.GEMINI_API_KEY)
-
-_IMPACT_CONFIG = genai.types.GenerateContentConfig(
-    temperature=0.1,
-    max_output_tokens=2048,
-)
 
 
 # ── Blast Radius ─────────────────────────────────────────────────────────────
 
-def blast_radius(node_name: str, node_type: Optional[str] = None, depth: int = 4) -> dict:
+def blast_radius(
+    node_name: str,
+    node_type: Optional[str] = None,
+    depth: int = 4,
+    repo_key: Optional[str] = None,
+) -> dict:
     """
     Find all nodes that depend on (upstream) or are depended upon by (downstream)
     the given node.  Returns categorized lists with relationship paths.
     """
     # Build match clause
+    service_filter = " AND target.service = $service" if repo_key else ""
     if node_type:
-        match_clause = f"MATCH (target:{node_type}) WHERE toLower(target.name) = toLower($name) OR toLower(target.path) = toLower($name)"
+        match_clause = (
+            f"MATCH (target:{node_type}) "
+            f"WHERE (toLower(target.name) = toLower($name) OR toLower(target.path) = toLower($name)){service_filter}"
+        )
     else:
-        match_clause = "MATCH (target) WHERE toLower(target.name) = toLower($name) OR toLower(target.path) = toLower($name)"
+        match_clause = (
+            "MATCH (target) "
+            f"WHERE (toLower(target.name) = toLower($name) OR toLower(target.path) = toLower($name)){service_filter}"
+        )
 
     # Upstream: things that point TO this node (would be affected by changes)
     upstream_cypher = f"""
     {match_clause}
     WITH target LIMIT 1
-    MATCH path = (src)-[*1..{depth}]->(target)
-    WHERE src <> target
+        MATCH path = (src)-[*1..{depth}]->(target)
+        WHERE src <> target
+            {"AND src.service = $service" if repo_key else ""}
     WITH src, [r IN relationships(path) | type(r)] AS rel_chain,
          [n IN nodes(path) | COALESCE(n.name, n.path, 'unknown')] AS node_chain,
          [n IN nodes(path) | labels(n)[0]] AS label_chain
@@ -67,8 +67,9 @@ def blast_radius(node_name: str, node_type: Optional[str] = None, depth: int = 4
     downstream_cypher = f"""
     {match_clause}
     WITH target LIMIT 1
-    MATCH path = (target)-[*1..{depth}]->(dst)
-    WHERE dst <> target
+        MATCH path = (target)-[*1..{depth}]->(dst)
+        WHERE dst <> target
+            {"AND dst.service = $service" if repo_key else ""}
     WITH dst, [r IN relationships(path) | type(r)] AS rel_chain,
          [n IN nodes(path) | COALESCE(n.name, n.path, 'unknown')] AS node_chain,
          [n IN nodes(path) | labels(n)[0]] AS label_chain
@@ -82,16 +83,18 @@ def blast_radius(node_name: str, node_type: Optional[str] = None, depth: int = 4
     """
 
     # Direct relationships (1-hop)
+    neighbor_filter = "WHERE neighbor.service = $service" if repo_key else ""
     direct_cypher = f"""
     {match_clause}
     WITH target LIMIT 1
     MATCH (target)-[r]-(neighbor)
+    {neighbor_filter}
     RETURN
-      labels(neighbor)[0] AS neighbor_type,
-      COALESCE(neighbor.name, neighbor.path) AS neighbor_name,
-      neighbor.service AS neighbor_service,
-      type(r) AS relationship,
-      CASE WHEN startNode(r) = target THEN 'outgoing' ELSE 'incoming' END AS direction
+        labels(neighbor)[0] AS neighbor_type,
+        COALESCE(neighbor.name, neighbor.path) AS neighbor_name,
+        neighbor.service AS neighbor_service,
+        type(r) AS relationship,
+        CASE WHEN startNode(r) = target THEN 'outgoing' ELSE 'incoming' END AS direction
     LIMIT 50
     """
 
@@ -99,9 +102,13 @@ def blast_radius(node_name: str, node_type: Optional[str] = None, depth: int = 4
     downstream = []
     direct = []
 
+    params = {"name": node_name}
+    if repo_key:
+        params["service"] = repo_key
+
     with graph_service.driver.session() as session:
         # Upstream
-        for rec in session.run(upstream_cypher, name=node_name):
+        for rec in session.run(upstream_cypher, **params):
             upstream.append({
                 "type": rec["source_type"],
                 "name": rec["source_name"],
@@ -113,7 +120,7 @@ def blast_radius(node_name: str, node_type: Optional[str] = None, depth: int = 4
             })
 
         # Downstream
-        for rec in session.run(downstream_cypher, name=node_name):
+        for rec in session.run(downstream_cypher, **params):
             downstream.append({
                 "type": rec["target_type"],
                 "name": rec["target_name"],
@@ -125,7 +132,7 @@ def blast_radius(node_name: str, node_type: Optional[str] = None, depth: int = 4
             })
 
         # Direct
-        for rec in session.run(direct_cypher, name=node_name):
+        for rec in session.run(direct_cypher, **params):
             direct.append({
                 "type": rec["neighbor_type"],
                 "name": rec["neighbor_name"],
@@ -169,14 +176,20 @@ def blast_radius(node_name: str, node_type: Optional[str] = None, depth: int = 4
 
 # ── Dependency Chain ─────────────────────────────────────────────────────────
 
-def dependency_chain(source: str, target: str, max_depth: int = 6) -> dict:
+def dependency_chain(
+    source: str,
+    target: str,
+    max_depth: int = 6,
+    repo_key: Optional[str] = None,
+) -> dict:
     """
     Find the shortest path(s) between two nodes in the knowledge graph.
     """
     cypher = f"""
     MATCH (a), (b)
-    WHERE (toLower(a.name) = toLower($source) OR toLower(a.path) = toLower($source))
-      AND (toLower(b.name) = toLower($target) OR toLower(b.path) = toLower($target))
+        WHERE (toLower(a.name) = toLower($source) OR toLower(a.path) = toLower($source))
+            AND (toLower(b.name) = toLower($target) OR toLower(b.path) = toLower($target))
+            {"AND a.service = $service AND b.service = $service" if repo_key else ""}
     WITH a, b LIMIT 1
     MATCH path = shortestPath((a)-[*1..{max_depth}]-(b))
     WITH path,
@@ -189,8 +202,12 @@ def dependency_chain(source: str, target: str, max_depth: int = 6) -> dict:
     """
 
     chains = []
+    params = {"source": source, "target": target}
+    if repo_key:
+        params["service"] = repo_key
+
     with graph_service.driver.session() as session:
-        for rec in session.run(cypher, source=source, target=target):
+        for rec in session.run(cypher, **params):
             chain_steps = []
             node_names = rec["node_names"]
             node_types = rec["node_types"]
@@ -215,16 +232,20 @@ def dependency_chain(source: str, target: str, max_depth: int = 6) -> dict:
 
 # ── Impact Summary (LLM) ────────────────────────────────────────────────────
 
-def impact_summary(node_name: str, node_type: Optional[str] = None, depth: int = 4) -> dict:
+def impact_summary(
+    node_name: str,
+    node_type: Optional[str] = None,
+    depth: int = 4,
+    repo_key: Optional[str] = None,
+) -> dict:
     """
     Generate an LLM-powered risk assessment for changing a specific node.
-    Combines blast radius data with Gemini analysis.
+    Combines blast radius data with LLM analysis.
     """
     # Compute blast radius first
-    radius = blast_radius(node_name, node_type, depth=depth)
+    radius = blast_radius(node_name, node_type, depth=depth, repo_key=repo_key)
 
-    llm = _get_llm()
-    if not llm:
+    if not llm_service.enabled:
         return {
             **radius,
             "summary": "LLM not available. See blast radius data above.",
@@ -281,12 +302,7 @@ Format as JSON:
 Output ONLY the JSON."""
 
     try:
-        response = llm.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-            config=_IMPACT_CONFIG,
-        )
-        raw = response.text.strip()
+        raw = llm_service.generate_text(prompt, temperature=0.1, max_output_tokens=2048)
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
         import json
@@ -308,13 +324,20 @@ Output ONLY the JSON."""
 
 # ── Search nodes ─────────────────────────────────────────────────────────────
 
-def search_nodes(query: str, node_type: Optional[str] = None, limit: int = 20) -> list[dict]:
+def search_nodes(
+    query: str,
+    node_type: Optional[str] = None,
+    limit: int = 20,
+    repo_key: Optional[str] = None,
+) -> list[dict]:
     """
     Search for nodes in the knowledge graph by name/path.
     This powers the autocomplete/search in the What-If UI.
     """
     q_stripped = query.strip()
-    where_clause = "WHERE toLower(COALESCE(n.name, n.path, '')) CONTAINS toLower($search_term)" if q_stripped else ""
+    where_clause = "WHERE toLower(COALESCE(n.name, n.path, '')) CONTAINS toLower($search_term)" if q_stripped else "WHERE 1=1"
+    if repo_key:
+        where_clause += " AND n.service = $service"
 
     if node_type:
         cypher = f"""
@@ -336,8 +359,12 @@ def search_nodes(query: str, node_type: Optional[str] = None, limit: int = 20) -
         """
 
     nodes = []
+    params = {"search_term": query, "limit": limit}
+    if repo_key:
+        params["service"] = repo_key
+
     with graph_service.driver.session() as session:
-        for rec in session.run(cypher, search_term=query, limit=limit):
+        for rec in session.run(cypher, **params):
             nodes.append({
                 "type": rec["type"],
                 "name": rec["name"],

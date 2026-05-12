@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import Link from 'next/link'
 import { Node, Edge } from 'reactflow'
+import { useAuth } from '../context/AuthContext'
 
 // React Flow must be client-only (no SSR)
 import type { GraphViewProps } from '@/components/GraphView'
@@ -21,6 +21,11 @@ const GraphView = dynamic<GraphViewProps>(() => import('@/components/GraphView')
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 export default function GraphPage() {
+  const { token } = useAuth()
+  const authHeaders = useMemo(() => {
+    if (!token) return {}
+    return { Authorization: `Bearer ${token}` }
+  }, [token])
   const [nodes, setNodes]   = useState<Node[]>([])
   const [edges, setEdges]   = useState<Edge[]>([])
   const [stats, setStats]   = useState<{ label: string; count: number }[]>([])
@@ -38,8 +43,8 @@ export default function GraphPage() {
         : `${API_BASE}/graph/`
 
       const [graphRes, statsRes] = await Promise.all([
-        fetch(url),
-        fetch(`${API_BASE}/graph/stats`),
+        fetch(url, { headers: authHeaders }),
+        fetch(`${API_BASE}/graph/stats`, { headers: authHeaders }),
       ])
 
       if (!graphRes.ok) throw new Error(`Graph API returned ${graphRes.status}`)
@@ -66,17 +71,16 @@ export default function GraphPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 text-gray-100">
-      {/* ── Top bar ─────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-gray-200 flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-indigo-400 hover:text-indigo-300 text-sm">← Home</Link>
-          <h1 className="text-lg font-bold text-slate-900">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
             Knowledge Graph
             {service && (
-              <span className="ml-2 text-indigo-400 text-sm font-normal">— {service}</span>
+              <span className="ml-2 text-blue-400 text-sm font-medium">— {service}</span>
             )}
           </h1>
+          <p className="text-sm text-[var(--color-text-muted)]">Explore nodes and relationships in Neo4j.</p>
         </div>
 
         <form onSubmit={handleFilter} className="flex items-center gap-2">
@@ -85,11 +89,11 @@ export default function GraphPage() {
             placeholder="Filter by service name…"
             value={serviceInput}
             onChange={e => setServiceInput(e.target.value)}
-            className="bg-gray-100 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-52"
+            className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
           />
           <button
             type="submit"
-            className="bg-indigo-600 hover:bg-indigo-500 text-slate-900 text-sm rounded-lg px-3 py-1.5 transition-colors"
+            className="bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg px-3 py-2 transition-colors"
           >
             Filter
           </button>
@@ -97,7 +101,7 @@ export default function GraphPage() {
             <button
               type="button"
               onClick={() => { setService(''); setServiceInput(''); fetchGraph() }}
-              className="text-gray-500 hover:text-gray-700 text-sm px-2 py-1.5 transition-colors"
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] text-sm px-2 py-2 transition-colors"
             >
               Clear
             </button>
@@ -105,13 +109,13 @@ export default function GraphPage() {
           <button
             type="button"
             onClick={() => fetchGraph(service || undefined)}
-            className="text-gray-500 hover:text-gray-700 text-sm px-2 py-1.5 transition-colors"
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] text-sm px-2 py-2 transition-colors"
             title="Refresh"
           >
             ↻
           </button>
         </form>
-      </header>
+      </div>
 
       {/* ── Graph canvas ────────────────────────────────── */}
       <main className="flex-1 min-h-0 relative">

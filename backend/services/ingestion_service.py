@@ -316,7 +316,14 @@ class IngestionService:
         print(f"\n{msg}")
         return {"status": "success", "message": msg}
 
-    def ingest_from_github(self, repo_url: str, branch: str = "main", incremental: bool = True):
+    def ingest_from_github(
+        self,
+        repo_url: str,
+        branch: str = "main",
+        incremental: bool = True,
+        github_token: str | None = None,
+        repo_key: str | None = None,
+    ):
         """
         Ingest a GitHub repository via the GitHub API — no local clone needed.
         Fetches every code file directly and parses it into the Knowledge Graph.
@@ -324,7 +331,8 @@ class IngestionService:
         incremental=True: Only re-parse files whose content hash has changed.
         """
         print(f"\nStarting GitHub API ingestion for {repo_url} (branch: {branch}, incremental: {incremental})")
-        service_name = repo_url.rstrip("/").replace(".git", "").split("/")[-1]
+        repo_name = repo_url.rstrip("/").replace(".git", "").split("/")[-1]
+        service_name = repo_key or repo_name
 
         graph_service.create_service_node(
             name=service_name,
@@ -346,7 +354,16 @@ class IngestionService:
         except Exception:
             pass
 
-        svc = GitHubService(token=settings.github_token)
+        token_to_use = github_token or settings.GITHUB_TOKEN or settings.github_token
+
+        # Auto-create webhook for continuous updates
+        try:
+            from services.github_service import github_webhook_service
+            github_webhook_service.create_webhook(repo_url, github_token=token_to_use)
+        except Exception as e:
+            print(f"[Ingestion] Webhook setup failed: {e}")
+
+        svc = GitHubService(token=token_to_use)
         file_count = 0
         skipped_count = 0
 
@@ -394,7 +411,7 @@ class IngestionService:
             from services.rag_service import rag_service
             print(f"[Ingestion] rag_service imported: {rag_service}")
             print(f"[Ingestion] Calling sync_graph_to_vector_store()...")
-            rag_result = rag_service.sync_graph_to_vector_store()
+            rag_result = rag_service.sync_graph_to_vector_store(service_name)
             print(f"[Ingestion] RAG sync result: {rag_result}")
             print(f"[Ingestion] RAG sync complete: {rag_result.get('document_count', '?')} docs indexed")
         except Exception as rag_err:

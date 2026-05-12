@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     # LLM Settings
     OPENAI_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
+    GROQ_API_KEY: Optional[str] = None
+    GROQ_MODEL: str = "llama-3.1-70b-versatile"
     
     # GitHub Automation Settings
     GITHUB_TOKEN: Optional[str] = None

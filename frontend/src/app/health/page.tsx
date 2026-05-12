@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -28,10 +28,11 @@ import {
   LayoutTemplate,
   ExternalLink,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Types
 
 interface CoverageEntry {
   total: number;
@@ -268,6 +269,11 @@ function EmptyState({ text }: { text: string }) {
 // â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function HealthPage() {
+  const { token } = useAuth();
+  const authHeaders = useMemo(() => {
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  }, [token]);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -277,7 +283,7 @@ export default function HealthPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/knowledge-health/dashboard`);
+      const res = await fetch(`${API}/knowledge-health/dashboard`, { headers: authHeaders });
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const json = await res.json();
       setData(json);
@@ -317,7 +323,7 @@ export default function HealthPage() {
     try {
       const res = await fetch(`${API}/knowledge-health/suggest`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ name, node_type: nodeType }),
       });
       const json = await res.json();
@@ -335,7 +341,7 @@ export default function HealthPage() {
     try {
       const res = await fetch(`${API}/knowledge-health/suggest-update`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ doc_name: docName, service }),
       });
       const json = await res.json();
@@ -351,7 +357,7 @@ export default function HealthPage() {
     if (activeTemplate?.type === type) { setActiveTemplate(null); return; }
     setLoadingTemplate(true);
     try {
-      const res = await fetch(`${API}/knowledge-health/templates/${type}`);
+      const res = await fetch(`${API}/knowledge-health/templates/${type}`, { headers: authHeaders });
       const json = await res.json();
       setActiveTemplate(json);
     } catch {
@@ -369,50 +375,28 @@ export default function HealthPage() {
   const services = data?.undocumented_services ?? [];
 
   return (
-    <div className="min-h-screen bg-grid text-[var(--color-text-primary)]">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-background)]/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
-            >
-              <ArrowLeft size={14} />
-              Back
-            </Link>
-            <div className="w-px h-4 bg-[var(--color-border)]" />
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <ShieldCheck size={14} className="text-slate-900" />
-              </div>
-              <div>
-                <h1 className="text-sm font-bold leading-none">System Knowledge Health</h1>
-                <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 leading-none">
-                  Documentation coverage Â· Gaps Â· Staleness
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {lastRefresh && (
-              <span className="text-[10px] text-[var(--color-text-muted)]">
-                Updated {lastRefresh.toLocaleTimeString()}
-              </span>
-            )}
-            <button
-              onClick={load}
-              disabled={loading}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[var(--color-card)] border border-[var(--color-border)] hover:border-emerald-500/40 transition-colors disabled:opacity-50"
-            >
-              {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-              Refresh
-            </button>
-          </div>
+    <div className="max-w-6xl mx-auto space-y-6 text-[var(--color-text-primary)]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">System Knowledge Health</h1>
+          <p className="text-sm text-[var(--color-text-muted)]">Documentation coverage, gaps, and staleness.</p>
         </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        <div className="flex items-center gap-2">
+          {lastRefresh && (
+            <span className="text-[10px] text-[var(--color-text-muted)]">
+              Updated {lastRefresh.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[var(--color-card)] border border-[var(--color-border)] hover:border-emerald-500/40 transition-colors disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            Refresh
+          </button>
+        </div>
+      </div>
 
         {/* Error */}
         {error && (
@@ -841,7 +825,6 @@ export default function HealthPage() {
             </Section>
           </>
         )}
-      </main>
     </div>
   );
 }

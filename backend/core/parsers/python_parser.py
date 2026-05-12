@@ -130,6 +130,7 @@ class PythonASTParser:
                 "docstring": docstring,
                 "complexity_score": complexity,
             })
+        return functions
     # PYDANTIC SCHEMAS
     # Looks for: class SomeName(BaseModel):
     # Returns list of schema names

@@ -1,5 +1,12 @@
 # Quick Start Guide
 
+## Infrastructure Setup (Docker)
+
+To run the required databases (Neo4j, Qdrant, Postgres, Redis):
+```bash
+docker-compose up -d
+```
+
 ## Backend Setup
 
 1. **Start the backend server:**

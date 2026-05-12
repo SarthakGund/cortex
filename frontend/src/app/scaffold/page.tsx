@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -21,6 +21,7 @@ import {
   Zap,
   Globe,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -271,6 +272,11 @@ function FileTree({ files, onSelect, selected }: {
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function ScaffoldPage() {
+  const { token } = useAuth();
+  const authHeaders = useMemo(() => {
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  }, [token]);
   const [step, setStep] = useState<"input" | "blueprint" | "scaffold">("input");
   const [requirements, setRequirements] = useState("");
   const [referenceService, setReferenceService] = useState("");
@@ -296,7 +302,7 @@ export default function ScaffoldPage() {
     try {
       const res = await fetch(`${API}/scaffold/design`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
           requirements,
           reference_service: referenceService.trim() || undefined,
@@ -325,7 +331,7 @@ export default function ScaffoldPage() {
     try {
       const res = await fetch(`${API}/scaffold/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ blueprint }),
       });
       if (!res.ok) {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import AuthGate from "./components/AuthGate";
+import AppShell from "./components/AppShell";
 
 
 
@@ -22,10 +23,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body className="antialiased">
         <AuthProvider>
-          <AuthGate>{children}</AuthGate>
+          <AuthGate>
+            <AppShell>{children}</AppShell>
+          </AuthGate>
         </AuthProvider>
       </body>
     </html>

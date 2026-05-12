@@ -6,7 +6,7 @@ Pipeline:
   2. Embed               : Use sentence-transformers (all-MiniLM-L6-v2) to embed.
   3. Store               : Persist embeddings in ChromaDB (local, no server needed).
   4. Retrieve            : Semantic nearest-neighbour search for a user query.
-  5. Generate            : Gemini assembles the answer from retrieved context.
+    5. Generate            : LLM assembles the answer from retrieved context.
   6. Multi-hop           : Cypher-based graph traversal for dependency / impact queries.
 """
 
@@ -20,16 +20,10 @@ from typing import Any, Optional
 
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-try:
-    from google import genai
-    GENAI_AVAILABLE = True
-except ImportError:
-    genai = None  # type: ignore
-    GENAI_AVAILABLE = False
-    print("[RAG] google-genai not installed – LLM generation disabled.")
 
 from core.config import settings
 from services.graph_service import graph_service
+from services.llm_service import llm_service
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -38,7 +32,7 @@ CHROMA_PERSIST_DIR = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
 COLLECTION_NAME = "knowledge_graph"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 TOP_K = 8          # Number of chunks retrieved per query
-MAX_CONTEXT_CHARS = 12_000   # Rough limit before we truncate context for Gemini
+MAX_CONTEXT_CHARS = 12_000   # Rough limit before we truncate context for the LLM
 
 
 # ---------------------------------------------------------------------------
@@ -99,47 +93,49 @@ class RAGService:
             metadata={"hnsw:space": "cosine"},
         )
 
-        # --- Gemini ---
-        if GENAI_AVAILABLE and settings.GEMINI_API_KEY:
-            try:
-                self._llm = genai.Client(api_key=settings.GEMINI_API_KEY)
-                self._llm_enabled = True
-            except Exception as e:
-                print(f"[RAG] Gemini init failed: {e}")
-                self._llm = None
-                self._llm_enabled = False
-        else:
-            print("[RAG] GEMINI_API_KEY not set or google-genai unavailable – answers will be context-only.")
-            self._llm = None
-            self._llm_enabled = False
+        # --- LLM ---
+        self._llm_enabled = llm_service.enabled
+        if not self._llm_enabled:
+            print("[RAG] LLM not configured – answers will be context-only.")
+
+    def _count_documents(self, where: dict | None = None) -> int:
+        """Count documents, with fallback for Chroma versions lacking count(where=...)."""
+        if not where:
+            return self._collection.count()
+        try:
+            return self._collection.count(where=where)
+        except TypeError:
+            return len(self._collection.get(where=where, include=[])['ids'])
 
     # ------------------------------------------------------------------
     # 1. Build / Refresh Vector Store from Neo4j
     # ------------------------------------------------------------------
 
-    def _fetch_all_nodes(self) -> list[dict]:
-        """Query Neo4j for every node and return label + props."""
+    def _fetch_all_nodes(self, repo_key: str) -> list[dict]:
+        """Query Neo4j for every node in a repo and return label + props."""
         cypher = """
         MATCH (n)
+        WHERE n.service = $service
         RETURN labels(n) AS labels, properties(n) AS props
         LIMIT 5000
         """
         nodes = []
         with graph_service.driver.session() as session:
-            for record in session.run(cypher):
+            for record in session.run(cypher, service=repo_key):
                 labels = record["labels"]
                 props = dict(record["props"])
                 label = labels[0] if labels else "Unknown"
                 nodes.append({"label": label, "props": props})
         return nodes
 
-    def _fetch_relationships(self) -> list[dict]:
+    def _fetch_relationships(self, repo_key: str) -> list[dict]:
         """
         Enrich context with relationship triplets stored as extra documents.
         e.g.  Service 'auth' -[CALLS]-> Service 'users'
         """
         cypher = """
         MATCH (a)-[r]->(b)
+        WHERE a.service = $service AND b.service = $service
         RETURN labels(a)[0] AS src_label,
                properties(a) AS src_props,
                type(r)       AS rel_type,
@@ -149,7 +145,7 @@ class RAGService:
         """
         rows = []
         with graph_service.driver.session() as session:
-            for record in session.run(cypher):
+            for record in session.run(cypher, service=repo_key):
                 rows.append({
                     "src_label":  record["src_label"],
                     "src_props":  dict(record["src_props"]),
@@ -169,17 +165,20 @@ class RAGService:
             f"({row['dst_label']}: {dst_name})"
         )
 
-    def sync_graph_to_vector_store(self) -> dict:
+    def sync_graph_to_vector_store(self, repo_key: str) -> dict:
         """
         Pull the full Knowledge Graph from Neo4j, embed every node + relationship,
         and upsert into ChromaDB.  Returns a status dict.
         """
+        if not repo_key:
+            return {"status": "error", "message": "repo_key is required", "document_count": 0}
+
         documents: list[str] = []
         ids: list[str] = []
         metadatas: list[dict] = []
 
         # ---- Nodes ----
-        nodes = self._fetch_all_nodes()
+        nodes = self._fetch_all_nodes(repo_key)
         for node in nodes:
             label = node["label"]
             props = node["props"]
@@ -191,10 +190,11 @@ class RAGService:
                 "label": label,
                 "service": str(props.get("service", "")),
                 "name": str(props.get("name") or props.get("path") or ""),
+                "repo_key": repo_key,
             })
 
         # ---- Relationships ----
-        rels = self._fetch_relationships()
+        rels = self._fetch_relationships(repo_key)
         for i, row in enumerate(rels):
             text = self._rel_to_text(row)
             # Include a hash of src+rel+dst so identical rel types don't collide
@@ -208,6 +208,7 @@ class RAGService:
                 "label": "Relationship",
                 "service": "",
                 "name": row["rel_type"],
+                "repo_key": repo_key,
             })
 
         if not documents:
@@ -253,9 +254,10 @@ class RAGService:
     # 2. Retrieve
     # ------------------------------------------------------------------
 
-    def retrieve(self, query: str, top_k: int = TOP_K) -> list[dict]:
+    def retrieve(self, query: str, top_k: int = TOP_K, repo_key: str | None = None) -> list[dict]:
         """Semantic search on the vector store."""
-        count = self._collection.count()
+        where = {"repo_key": repo_key} if repo_key else None
+        count = self._count_documents(where)
         if count == 0:
             return []
 
@@ -263,6 +265,7 @@ class RAGService:
             query_texts=[query],
             n_results=min(top_k, count),
             include=["documents", "metadatas", "distances"],
+            where=where,
         )
 
         chunks = []
@@ -285,7 +288,7 @@ class RAGService:
     def _build_context(self, chunks: list[dict]) -> tuple[str, int]:
         """
         Group retrieved chunks by their graph label and format them as a
-        structured XML-like context block so Gemini can reason over them
+        structured XML-like context block so the LLM can reason over them
         more reliably.
         Returns (context_string, number_of_chunks_used).
         """
@@ -309,12 +312,12 @@ class RAGService:
 
         return "\n\n".join(sections), used
 
-    def answer(self, question: str, top_k: int = TOP_K) -> dict:
+    def answer(self, question: str, top_k: int = TOP_K, repo_key: str | None = None) -> dict:
         """
         Full RAG pipeline:
-          retrieve → structure context → build prompt → call Gemini → return answer + sources.
+          retrieve → structure context → build prompt → call LLM → return answer + sources.
         """
-        chunks = self.retrieve(question, top_k=top_k)
+        chunks = self.retrieve(question, top_k=top_k, repo_key=repo_key)
 
         if not chunks:
             return {
@@ -366,15 +369,11 @@ Question: {question}
 Answer:"""
 
         try:
-            response = self._llm.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-                config=genai.types.GenerateContentConfig(
-                    temperature=0.2,
-                    max_output_tokens=2048,
-                ),
+            answer_text = llm_service.generate_text(
+                prompt,
+                temperature=0.2,
+                max_output_tokens=2048,
             )
-            answer_text = response.text.strip()
         except Exception as e:
             answer_text = (
                 f"⚠️ LLM generation failed: {type(e).__name__}: {e}\n\n"
@@ -387,7 +386,7 @@ Answer:"""
             "context_used": context_used,
         }
 
-    def chat(self, messages: list[dict], top_k: int = TOP_K) -> dict:
+    def chat(self, messages: list[dict], top_k: int = TOP_K, repo_key: str | None = None) -> dict:
         """
         Multi-turn RAG chat.
         messages: list of {role: 'user'|'assistant', content: str}
@@ -403,7 +402,7 @@ Answer:"""
             raise ValueError("No user message found")
         query = user_messages[-1]["content"]
 
-        chunks = self.retrieve(query, top_k=top_k)
+        chunks = self.retrieve(query, top_k=top_k, repo_key=repo_key)
         if not chunks:
             return {
                 "answer": "The vector store is empty. Please sync the knowledge graph first.",
@@ -444,15 +443,11 @@ User: {query}
 Assistant:"""
 
         try:
-            response = self._llm.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-                config=genai.types.GenerateContentConfig(
-                    temperature=0.2,
-                    max_output_tokens=2048,
-                ),
+            answer_text = llm_service.generate_text(
+                prompt,
+                temperature=0.2,
+                max_output_tokens=2048,
             )
-            answer_text = response.text.strip()
         except Exception as e:
             answer_text = f"⚠️ LLM error: {type(e).__name__}: {e}"
 
@@ -466,7 +461,7 @@ Assistant:"""
     # 4. Multi-hop graph traversal (Cypher-based impact queries)
     # ------------------------------------------------------------------
 
-    def multi_hop_query(self, question: str) -> dict:
+    def multi_hop_query(self, question: str, repo_key: str | None = None) -> dict:
         """
         Attempt to answer a question using direct Cypher graph traversal
         before falling back to vector retrieval.  Supports patterns like:
@@ -488,7 +483,7 @@ Assistant:"""
                 graph_context = ""
 
         # Step 2: Also do vector retrieval for supplementary context
-        chunks = self.retrieve(question, top_k=TOP_K)
+        chunks = self.retrieve(question, top_k=TOP_K, repo_key=repo_key)
         vector_context, context_used = self._build_context(chunks)
 
         if not self._llm_enabled:
@@ -528,15 +523,11 @@ Question: {question}
 Answer:"""
 
         try:
-            response = self._llm.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-                config=genai.types.GenerateContentConfig(
-                    temperature=0.15,
-                    max_output_tokens=3072,
-                ),
+            answer_text = llm_service.generate_text(
+                prompt,
+                temperature=0.15,
+                max_output_tokens=3072,
             )
-            answer_text = response.text.strip()
         except Exception as e:
             answer_text = f"⚠️ LLM error: {e}\n\n**Raw context:**\n\n{combined_context}"
 
@@ -578,20 +569,28 @@ Instructions:
 Cypher:"""
 
         try:
-            response = self._llm.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-                config=genai.types.GenerateContentConfig(
-                    temperature=0.0,
-                    max_output_tokens=512,
-                ),
+            raw = llm_service.generate_text(
+                prompt,
+                temperature=0.0,
+                max_output_tokens=512,
             )
-            raw = response.text.strip()
             # Strip markdown fences
             raw = re.sub(r"^```(?:cypher|sql)?\s*", "", raw, flags=re.MULTILINE)
             raw = re.sub(r"\s*```$", "", raw, flags=re.MULTILINE)
             raw = raw.strip()
             if raw.upper() == "NONE" or not raw:
+                return "", ""
+            # Basic sanity checks to avoid invalid Cypher (e.g., SQL-style FROM)
+            upper_raw = raw.upper()
+            first_line = next((ln.strip() for ln in raw.splitlines() if ln.strip()), "")
+            if " FROM " in upper_raw or first_line.startswith("FROM "):
+                return "", ""
+            if not (
+                first_line.startswith("MATCH ") or
+                first_line.startswith("OPTIONAL MATCH ") or
+                first_line.startswith("WITH ") or
+                first_line.startswith("CALL ")
+            ):
                 return "", ""
             # Extract entity name from the question for reference
             entity = ""
@@ -631,15 +630,24 @@ Cypher:"""
     # 5. Stats
     # ------------------------------------------------------------------
 
-    def clear_vector_store(self) -> dict:
+    def clear_vector_store(self, repo_key: str | None = None) -> dict:
         """
         Delete all documents from the ChromaDB collection.
         The collection itself is preserved so it can be re-synced immediately.
         Returns a status dict.
         """
-        count_before = self._collection.count()
+        where = {"repo_key": repo_key} if repo_key else None
+        count_before = self._count_documents(where)
         if count_before == 0:
             return {"status": "ok", "message": "Collection is already empty.", "deleted": 0}
+
+        if where:
+            self._collection.delete(where=where)
+            return {
+                "status": "success",
+                "message": f"Deleted {count_before} documents for repo.",
+                "deleted": count_before,
+            }
 
         # Delete the collection and recreate it (fastest way to wipe everything)
         self._client.delete_collection(COLLECTION_NAME)
@@ -659,8 +667,9 @@ Cypher:"""
     # 7. Stats
     # ------------------------------------------------------------------
 
-    def stats(self) -> dict:
-        count = self._collection.count()
+    def stats(self, repo_key: str | None = None) -> dict:
+        where = {"repo_key": repo_key} if repo_key else None
+        count = self._count_documents(where)
         return {
             "document_count": count,
             "collection_name": COLLECTION_NAME,

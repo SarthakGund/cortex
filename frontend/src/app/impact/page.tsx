@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Search, AlertTriangle, GitBranch, ArrowRight, ArrowLeft,
   Loader2, Shield, Target, Zap, ChevronDown, ChevronRight,
   Network, AlertCircle, CheckCircle2, Info, X
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -103,6 +104,11 @@ const RISK_ICONS: Record<string, typeof CheckCircle2> = {
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function ImpactPage() {
+  const { token } = useAuth();
+  const authHeaders = useMemo(() => {
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  }, [token]);
   const [mode, setMode] = useState<"blast" | "chain">("blast");
 
   // Blast radius state
@@ -132,7 +138,9 @@ export default function ImpactPage() {
     }
     setSearching(true);
     try {
-      const res = await fetch(`${API}/impact/search?q=${encodeURIComponent(q)}&limit=15`);
+      const res = await fetch(`${API}/impact/search?q=${encodeURIComponent(q)}&limit=15`, {
+        headers: authHeaders,
+      });
       if (res.ok) {
         const data = await res.json();
         setSearchResults(data.results || data);
@@ -164,7 +172,7 @@ export default function ImpactPage() {
         ...(target.type ? { node_type: target.type } : {}),
         depth: depth.toString(),
       });
-      const res = await fetch(`${API}${endpoint}?${params}`);
+      const res = await fetch(`${API}${endpoint}?${params}`, { headers: authHeaders });
       if (res.ok) {
         setBlastResult(await res.json());
       }
@@ -182,7 +190,7 @@ export default function ImpactPage() {
     setChainResult(null);
     try {
       const params = new URLSearchParams({ source: chainSource, target: chainTarget });
-      const res = await fetch(`${API}/impact/chain?${params}`);
+      const res = await fetch(`${API}/impact/chain?${params}`, { headers: authHeaders });
       if (res.ok) {
         setChainResult(await res.json());
       }
@@ -193,41 +201,30 @@ export default function ImpactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-black/5 bg-slate-50/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <a href="/" className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors">
-              <Zap size={18} className="text-indigo-400" />
-              {/* <span className="font-semibold">SPIT</span> */}
-            </a>
-            <span className="text-slate-700">/</span>
-            <div className="flex items-center gap-2">
-              <Target size={16} className="text-orange-400" />
-              <span className="font-semibold text-slate-900">What-If Analyzer</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 bg-slate-100/50 rounded-lg p-0.5">
-            <button
-              onClick={() => setMode("blast")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${mode === "blast" ? "bg-orange-500/20 text-orange-400" : "text-slate-600 hover:text-slate-900"}`}
-            >
-              <Target size={12} className="inline mr-1" /> Blast Radius
-            </button>
-            <button
-              onClick={() => setMode("chain")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${mode === "chain" ? "bg-blue-500/20 text-blue-400" : "text-slate-600 hover:text-slate-900"}`}
-            >
-              <GitBranch size={12} className="inline mr-1" /> Dep Chain
-            </button>
-          </div>
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">What-If Analyzer</h1>
+          <p className="text-sm text-[var(--color-text-muted)]">Analyze blast radius and dependency chains.</p>
         </div>
-      </header>
+        <div className="flex items-center gap-1 bg-[var(--color-card)] rounded-lg p-0.5 border border-[var(--color-border)]">
+          <button
+            onClick={() => setMode("blast")}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${mode === "blast" ? "bg-orange-500/20 text-orange-400" : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"}`}
+          >
+            <Target size={12} className="inline mr-1" /> Blast Radius
+          </button>
+          <button
+            onClick={() => setMode("chain")}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${mode === "chain" ? "bg-blue-500/20 text-blue-400" : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"}`}
+          >
+            <GitBranch size={12} className="inline mr-1" /> Dep Chain
+          </button>
+        </div>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {mode === "blast" ? (
-          <div className="space-y-6">
+      {mode === "blast" ? (
+        <div className="space-y-6">
             {/* Search + Controls */}
             <div className="bg-white border border-slate-200 rounded-xl p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -303,8 +300,8 @@ export default function ImpactPage() {
             {/* Results */}
             {blastResult && <BlastRadiusView data={blastResult} />}
           </div>
-        ) : (
-          <div className="space-y-6">
+      ) : (
+        <div className="space-y-6">
             {/* Chain input */}
             <div className="bg-white border border-slate-200 rounded-xl p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -344,8 +341,7 @@ export default function ImpactPage() {
 
             {chainResult && <ChainView data={chainResult} />}
           </div>
-        )}
-      </main>
+      )}
     </div>
   );
 }

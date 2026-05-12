@@ -17,10 +17,10 @@ class CommitService:
     def __init__(self):
         pass
 
-    def summarize_commit(self, repo_url: str, commit_data: dict) -> dict:
+    def summarize_commit(self, repo_url: str, commit_data: dict, service_name_override: str | None = None) -> dict:
         """
         Takes raw commit data from a webhook (message, modified files, etc.)
-        and generates a high-level technical summary using Gemini.
+        and generates a high-level technical summary using the LLM.
         Stores in PostgreSQL database.
         """
         commit_hash = commit_data.get("id", "unknown")
@@ -38,8 +38,8 @@ class CommitService:
         except:
             timestamp = datetime.now()
 
-        # Extract service name from repo URL
-        service_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
+        # Extract service name from repo URL (or override with repo_key)
+        service_name = service_name_override or repo_url.rstrip("/").split("/")[-1].replace(".git", "")
 
         prompt = f"""
         You are an expert lead developer reviewing a code change.
@@ -116,11 +116,14 @@ class CommitService:
         finally:
             db.close()
 
-    def get_recent_summaries(self, limit: int = 20):
+    def get_recent_summaries(self, limit: int = 20, service_name: str | None = None):
         """Retrieve recent commit summaries from PostgreSQL."""
         db = SessionLocal()
         try:
-            commits = db.query(Commit).order_by(Commit.timestamp.desc()).limit(limit).all()
+            query = db.query(Commit)
+            if service_name:
+                query = query.filter(Commit.service_name == service_name)
+            commits = query.order_by(Commit.timestamp.desc()).limit(limit).all()
             result = [commit.to_dict() for commit in commits]
             print(f"[CommitService] Fetched {len(result)} commits from database")
             return result

@@ -6,7 +6,7 @@ Autonomous Architecture Design & Infrastructure Scaffolding Agent.
 Two-phase approach:
   1. design(requirements, ref_service?)
        → Pulls reference architecture from Neo4j (if provided)
-       → Calls Gemini to produce a structured JSON blueprint
+    → Calls the LLM to produce a structured JSON blueprint
          (services, tech stacks, databases, communication protocols, rationale)
 
   2. generate(blueprint)
@@ -24,23 +24,17 @@ import textwrap
 import zipfile
 from typing import Any, Optional
 
-from google import genai
-
 from core.config import settings
 from services.graph_service import graph_service
 from services.github_service import GitHubService
+from services.llm_service import llm_service
 
 # ── LLM setup ────────────────────────────────────────────────────────────────
 
 def _get_llm():
-    if not settings.GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY not configured")
-    return genai.Client(api_key=settings.GEMINI_API_KEY)
-
-_SCAFFOLD_CONFIG = genai.types.GenerateContentConfig(
-    temperature=0.1,
-    max_output_tokens=8192,
-)
+    if not llm_service.enabled:
+        raise RuntimeError("GROQ_API_KEY not configured")
+    return llm_service
 
 
 # ── Reference Architecture Extractor ─────────────────────────────────────────
@@ -163,7 +157,7 @@ def design_architecture(
 ) -> dict:
     """
     Phase 1 – Design.
-    Uses Gemini to convert natural-language requirements into a structured
+    Uses the LLM to convert natural-language requirements into a structured
     system blueprint.  If reference_service is provided, the existing
     architecture from Neo4j is injected as template context.
     If reference_repo_url is provided, the GitHub repo file structure is
@@ -214,12 +208,7 @@ Rules:
 - Output ONLY the JSON — no prose, no markdown fences, no explanations outside the JSON.
 """
 
-    response = llm.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt,
-        config=_SCAFFOLD_CONFIG,
-    )
-    raw = response.text.strip()
+    raw = llm.generate_text(prompt, temperature=0.1, max_output_tokens=8192)
 
     # Strip markdown fences if the LLM wrapped it
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
@@ -233,7 +222,7 @@ Rules:
 
 def _generate_service_main(llm, service: dict, blueprint: dict) -> str:
     """
-    Call Gemini to generate a production-quality app stub for one service.
+    Call the LLM to generate a production-quality app stub for one service.
     """
     lang = service.get("language", "python")
     framework = service.get("framework", "fastapi")
@@ -276,12 +265,7 @@ Requirements:
 Output ONLY the source code — no markdown fences, no explanations.
 """
 
-    resp = llm.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt,
-        config=_SCAFFOLD_CONFIG,
-    )
-    return resp.text.strip()
+    return llm.generate_text(prompt, temperature=0.1, max_output_tokens=8192)
 
 
 def _dockerfile(service: dict) -> str:
