@@ -318,6 +318,7 @@ function IngestTab() {
       if (r.ok) setStats(await r.json());
     } catch {
       /* ignore */
+      
     } finally {
       setStatsLoading(false);
     }
