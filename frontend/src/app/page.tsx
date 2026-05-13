@@ -909,7 +909,7 @@ function ChatTab() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto swiss-panel px-4 py-3 min-h-0">
+      <div className="flex-1 overflow-y-auto border-2 border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 min-h-0">
         {messages.map((msg) => (
           <MessageBubble key={msg.id} msg={msg} />
         ))}
@@ -928,7 +928,7 @@ function ChatTab() {
                     setInput(s);
                     textareaRef.current?.focus();
                   }}
-                  className="text-left text-xs swiss-outline px-3 py-2.5 hover:bg-[var(--color-accent)] hover:text-[var(--color-accent-foreground)] transition-all"
+                  className="text-left text-xs border-2 border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 hover:bg-[var(--color-muted)] transition-all"
                 >
                   <Search size={11} className="inline mr-1.5 opacity-60" />
                   {s}
@@ -943,7 +943,7 @@ function ChatTab() {
 
       {/* Input */}
       <div className="mt-3 flex-shrink-0">
-        <div className="flex gap-2 items-end swiss-card p-3">
+        <div className="flex gap-2 items-end">
           <textarea
             ref={textareaRef}
             id="chat-input"
@@ -955,14 +955,14 @@ function ChatTab() {
             onKeyDown={handleKeyDown}
             placeholder="Ask anything about your codebase… (Enter to send, Shift+Enter for new line)"
             rows={1}
-            className="flex-1 bg-transparent text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] resize-none focus:outline-none leading-relaxed"
+            className="flex-1 border-2 border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] resize-none focus:outline-none leading-relaxed"
             style={{ minHeight: "36px", maxHeight: "160px" }}
           />
           <button
             id="send-btn"
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="flex-shrink-0 w-9 h-9 swiss-button disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+            className="flex-shrink-0 w-9 h-9 border-2 border-[var(--color-border)] bg-[var(--color-primary)] text-[var(--color-primary-foreground)] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all"
           >
             {loading ? (
               <Loader2 size={16} className="text-white animate-spin" />

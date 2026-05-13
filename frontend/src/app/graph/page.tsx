@@ -118,7 +118,7 @@ export default function GraphPage() {
       </div>
 
       {/* ── Graph canvas ────────────────────────────────── */}
-      <main className="flex-1 min-h-0 relative">
+      <main className="relative min-h-[60vh] h-[calc(100vh-240px)]">
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-gray-50/80 gap-4 text-gray-600">
             <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />

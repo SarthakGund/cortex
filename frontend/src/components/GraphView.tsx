@@ -512,8 +512,28 @@ function FilterBar({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function GraphView({ nodes: rawNodes, edges: rawEdges, stats }: GraphViewProps) {
-  const allTypes = useMemo(() => new Set(stats.map(s => s.label)), [stats])
-  const [activeTypes, setActiveTypes] = useState<Set<string>>(() => new Set(stats.map(s => s.label)))
+  const allTypes = useMemo(() => {
+    if (stats.length > 0) return new Set(stats.map(s => s.label))
+    const fallback = new Set<string>()
+    rawNodes.forEach(n => {
+      const nodeType = (n.data as BrainNodeData)?.nodeType
+      if (nodeType) fallback.add(nodeType)
+    })
+    return fallback
+  }, [stats, rawNodes])
+  const [activeTypes, setActiveTypes] = useState<Set<string>>(() => new Set())
+
+  React.useEffect(() => {
+    if (allTypes.size === 0) return
+    setActiveTypes(prev => {
+      if (prev.size === 0) return new Set(allTypes)
+      const next = new Set<string>()
+      allTypes.forEach(t => {
+        if (prev.has(t)) next.add(t)
+      })
+      return next.size === 0 ? new Set(allTypes) : next
+    })
+  }, [allTypes])
 
   // Degree map: id → total connections
   const degreeMap = useMemo(() => {
@@ -549,18 +569,16 @@ export default function GraphView({ nodes: rawNodes, edges: rawEdges, stats }: G
     [styledEdges, visibleNodeIds],
   )
 
-  const [nodes, , onNodesChange] = useNodesState(visibleNodes)
-  const [edges, , onEdgesChange] = useEdgesState(visibleEdges)
+  const [nodes, setNodes, onNodesChange] = useNodesState(visibleNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(visibleEdges)
   const [selected, setSelected] = useState<Node<BrainNodeData> | null>(null)
 
   React.useEffect(() => {
-    onNodesChange(visibleNodes.map(n => ({ type: 'reset' as const, item: n })))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleNodes])
+    setNodes(visibleNodes)
+  }, [visibleNodes, setNodes])
   React.useEffect(() => {
-    onEdgesChange(visibleEdges.map(e => ({ type: 'reset' as const, item: e })))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleEdges])
+    setEdges(visibleEdges)
+  }, [visibleEdges, setEdges])
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelected(prev => (prev?.id === node.id ? null : (node as Node<BrainNodeData>)))
