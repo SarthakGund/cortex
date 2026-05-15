@@ -143,14 +143,14 @@ function GraphSnapshotsView() {
     setDiffLoading(false);
   };
 
-  useEffect(() => { fetchSnapshots(); }, []);
+  useEffect(() => { fetchSnapshots(); }, [token]);
 
   // Group nodes by label for the detail view
   const nodesByLabel = detail
     ? detail.nodes.reduce<Record<string, typeof detail.nodes>>((acc, n) => {
-        (acc[n.label] = acc[n.label] || []).push(n);
-        return acc;
-      }, {})
+      (acc[n.label] = acc[n.label] || []).push(n);
+      return acc;
+    }, {})
     : {};
 
   return (

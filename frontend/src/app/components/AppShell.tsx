@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -17,6 +17,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -45,6 +46,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [activeRepoId, setActiveRepoId] = useState<number | null>(null);
   const [repoLoading, setRepoLoading] = useState(false);
+  const [repoDeleting, setRepoDeleting] = useState(false);
+  const [repoStatus, setRepoStatus] = useState<null | { type: "success" | "error" | "info"; text: string }>(null);
+  const repoStatusTimeout = useRef<number | null>(null);
 
   const authHeaders = useMemo(() => {
     if (!token) return {};
@@ -78,6 +82,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("repos:updated", handler);
   }, [loadRepos]);
 
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && repoStatusTimeout.current) {
+        window.clearTimeout(repoStatusTimeout.current);
+      }
+    };
+  }, []);
+
+  const showRepoStatus = useCallback((next: { type: "success" | "error" | "info"; text: string }) => {
+    setRepoStatus(next);
+    if (typeof window === "undefined") return;
+    if (repoStatusTimeout.current) window.clearTimeout(repoStatusTimeout.current);
+    repoStatusTimeout.current = window.setTimeout(() => setRepoStatus(null), 4000);
+  }, []);
+
   const handleRepoChange = useCallback(
     async (repoId: number) => {
       if (!token) return;
@@ -91,6 +110,42 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     },
     [token, authHeaders, loadRepos]
   );
+
+  const handleRepoDelete = useCallback(async () => {
+    if (!token || !activeRepoId) return;
+    const repo = repos.find((item) => item.id === activeRepoId);
+    const repoName = repo?.repo_full_name ?? "this repo";
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(`Delete ${repoName} from ingested repos?`);
+      if (!confirmed) return;
+    }
+    setRepoDeleting(true);
+    showRepoStatus({ type: "info", text: "Deleting repo..." });
+    try {
+      const r = await fetch(`${API}/repos/${activeRepoId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      });
+      if (!r.ok) {
+        let message = `Delete failed (${r.status})`;
+        try {
+          const data = await r.json();
+          if (typeof data?.message === "string") message = data.message;
+        } catch {
+          /* ignore */
+        }
+        showRepoStatus({ type: "error", text: message });
+        return;
+      }
+      await loadRepos();
+      showRepoStatus({ type: "success", text: "Repo deleted." });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("repos:updated"));
+      }
+    } finally {
+      setRepoDeleting(false);
+    }
+  }, [token, activeRepoId, repos, authHeaders, loadRepos, showRepoStatus]);
 
   const activeTab = getActiveTab(searchParams.get("tab"));
 
@@ -140,7 +195,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <select
                 value={activeRepoId ?? ""}
                 onChange={(e) => handleRepoChange(Number(e.target.value))}
-                disabled={repoLoading || repos.length === 0}
+                disabled={repoLoading || repos.length === 0 || repoDeleting}
                 className="text-xs bg-[var(--color-card)] border-2 border-[var(--color-border)] px-2.5 py-2 text-[var(--color-foreground)] min-w-[200px]"
               >
                 {repos.length === 0 ? (
@@ -153,6 +208,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   ))
                 )}
               </select>
+              <button
+                onClick={handleRepoDelete}
+                disabled={!activeRepoId || repoLoading || repoDeleting}
+                title="Delete ingested repo"
+                className="h-9 w-9 flex items-center justify-center border-2 border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <X size={14} />
+              </button>
             </div>
             <button
               onClick={logout}
@@ -165,6 +228,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
+
+      {repoStatus && (
+        <div className="fixed top-20 right-6 z-[60]">
+          <div
+            className={`min-w-[220px] max-w-[320px] text-[11px] px-3 py-2 rounded-md border shadow-lg bg-[var(--color-card)] text-[var(--color-foreground)] ${repoStatus.type === "success"
+              ? "border-emerald-500/40"
+              : repoStatus.type === "error"
+                ? "border-red-500/40"
+                : "border-blue-500/40"
+              }`}
+          >
+            <div
+              className={`h-1.5 w-10 rounded-full mb-2 ${repoStatus.type === "success"
+                ? "bg-emerald-400"
+                : repoStatus.type === "error"
+                  ? "bg-red-400"
+                  : "bg-blue-400"
+                }`}
+            />
+            {repoStatus.text}
+          </div>
+        </div>
+      )}
 
       <div className="flex">
         <aside

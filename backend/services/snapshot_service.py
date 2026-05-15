@@ -149,16 +149,14 @@ class SnapshotService:
 
     # ── Query ─────────────────────────────────────────────────────────────────
 
-    def list_snapshots(self, limit: int = 50) -> list[dict]:
-        """Return recent snapshots (summary only, no graph data)."""
+    def list_snapshots(self, limit: int = 50, service_name: Optional[str] = None) -> list[dict]:
+        """Return recent snapshots (summary only, no graph data), optionally filtered by repo."""
         db = SessionLocal()
         try:
-            snaps = (
-                db.query(GraphSnapshot)
-                .order_by(GraphSnapshot.taken_at.desc())
-                .limit(limit)
-                .all()
-            )
+            q = db.query(GraphSnapshot)
+            if service_name:
+                q = q.filter(GraphSnapshot.service_name == service_name)
+            snaps = q.order_by(GraphSnapshot.taken_at.desc()).limit(limit).all()
             return [s.to_dict() for s in snaps]
         except Exception as e:
             print(f"[SnapshotService] Error listing: {e}")
@@ -166,11 +164,14 @@ class SnapshotService:
         finally:
             db.close()
 
-    def get_snapshot(self, snapshot_id: int) -> Optional[dict]:
-        """Return a full snapshot (including nodes + edges)."""
+    def get_snapshot(self, snapshot_id: int, service_name: Optional[str] = None) -> Optional[dict]:
+        """Return a full snapshot (including nodes + edges), scoped to repo if provided."""
         db = SessionLocal()
         try:
-            snap = db.query(GraphSnapshot).filter(GraphSnapshot.id == snapshot_id).first()
+            q = db.query(GraphSnapshot).filter(GraphSnapshot.id == snapshot_id)
+            if service_name:
+                q = q.filter(GraphSnapshot.service_name == service_name)
+            snap = q.first()
             return snap.to_full_dict() if snap else None
         except Exception as e:
             print(f"[SnapshotService] Error fetching #{snapshot_id}: {e}")
@@ -178,10 +179,10 @@ class SnapshotService:
         finally:
             db.close()
 
-    def diff_snapshots(self, id_before: int, id_after: int) -> dict:
-        """Compare two snapshots and return added/removed/changed nodes and edges."""
-        before = self.get_snapshot(id_before)
-        after = self.get_snapshot(id_after)
+    def diff_snapshots(self, id_before: int, id_after: int, service_name: Optional[str] = None) -> dict:
+        """Compare two snapshots (scoped to repo) and return added/removed/changed nodes and edges."""
+        before = self.get_snapshot(id_before, service_name=service_name)
+        after = self.get_snapshot(id_after, service_name=service_name)
 
         if not before or not after:
             return {"error": "One or both snapshots not found"}
