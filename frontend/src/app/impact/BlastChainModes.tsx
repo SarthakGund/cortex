@@ -53,14 +53,14 @@ export function BlastRadiusMode({ authHeaders }: { authHeaders: Record<string, s
             {/* Controls */}
             <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-5">
                 <h2 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                    <Target size={16} className="text-orange-400" /> Select a Component to Analyze
+                    <Target size={16} className="text-[var(--color-primary)]" /> Select a Component to Analyze
                 </h2>
                 <div className="flex gap-3 flex-wrap">
                     <div className="flex-1 min-w-[200px] relative">
                         <Search size={14} className="absolute left-3 top-3 opacity-40" />
                         <input value={q} onChange={e => onType(e.target.value)} onKeyDown={e => e.key === "Enter" && analyze()}
                             placeholder="Search by name, endpoint, function, schema…"
-                            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-orange-500/60 placeholder:opacity-40 transition-colors" />
+                            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 placeholder:opacity-40 transition-colors" />
                         {results.length > 0 && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto">
                                 {results.map((r, i) => (
@@ -87,7 +87,7 @@ export function BlastRadiusMode({ authHeaders }: { authHeaders: Record<string, s
                             AI Summary
                         </label>
                         <button onClick={() => analyze()} disabled={loading || !q.trim()}
-                            className="px-4 py-2 rounded-lg text-sm font-bold bg-orange-500 hover:bg-orange-400 text-black disabled:opacity-40 transition-all flex items-center gap-2">
+                            className="px-4 py-2 rounded-lg text-sm font-bold bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)] disabled:opacity-40 transition-all flex items-center gap-2">
                             {loading ? <Loader2 size={14} className="animate-spin" /> : <Target size={14} />} Analyze
                         </button>
                     </div>
@@ -106,10 +106,10 @@ function BlastRadiusResult({ data }: { data: BlastRadius }) {
         <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-300">
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatCard icon={<Target size={16} className="text-orange-400" />} label="Target" value={data.node} sub={data.node_type ?? "Auto-detected"} />
-                <StatCard icon={<ArrowLeft size={16} className="text-red-400" />} label="Upstream" value={String(data.upstream.count)} sub="Components that depend on this" accent="border-red-500/20" />
-                <StatCard icon={<ArrowRight size={16} className="text-blue-400" />} label="Downstream" value={String(data.downstream.count)} sub="This component's dependencies" accent="border-blue-500/20" />
-                <StatCard icon={<Shield size={16} className="text-amber-400" />} label="Services" value={String(data.affected_services.length)} sub={data.affected_services.slice(0, 2).join(", ") || "none"} accent="border-amber-500/20" />
+                <StatCard icon={<Target size={16} className="text-[var(--color-primary)]" />} label="Target" value={data.node} sub={data.node_type ?? "Auto-detected"} />
+                <StatCard icon={<ArrowLeft size={16} className="text-[var(--color-destructive)]" />} label="Upstream" value={String(data.upstream.count)} sub="Components that depend on this" accent="border-[var(--color-destructive)]/20" />
+                <StatCard icon={<ArrowRight size={16} className="text-[var(--color-accent)]" />} label="Downstream" value={String(data.downstream.count)} sub="This component's dependencies" accent="border-[var(--color-accent)]/20" />
+                <StatCard icon={<Shield size={16} className="text-[var(--color-chart-4)]" />} label="Services" value={String(data.affected_services.length)} sub={data.affected_services.slice(0, 2).join(", ") || "none"} accent="border-[var(--color-chart-4)]/20" />
             </div>
 
             {/* Heat Map */}
@@ -126,18 +126,18 @@ function BlastRadiusResult({ data }: { data: BlastRadius }) {
 
             {/* Direct */}
             {data.direct.length > 0 && (
-                <CollapsibleSection title="Direct Connections" icon={<Network size={14} className="text-purple-400" />} badge={String(data.direct.length)}>
+                <CollapsibleSection title="Direct Connections" icon={<Network size={14} className="text-[var(--color-chart-5)]" />} badge={String(data.direct.length)}>
                     <DirectionList items={data.direct} />
                 </CollapsibleSection>
             )}
 
             {/* Upstream */}
-            <CollapsibleSection title={`Upstream — depends on "${data.node}"`} icon={<ArrowLeft size={14} className="text-red-400" />} badge={String(data.upstream.count)} defaultOpen>
+            <CollapsibleSection title={`Upstream — depends on "${data.node}"`} icon={<ArrowLeft size={14} className="text-[var(--color-destructive)]" />} badge={String(data.upstream.count)} defaultOpen>
                 <TypeGroupedList by_type={data.upstream.by_type} direction="upstream" />
             </CollapsibleSection>
 
             {/* Downstream */}
-            <CollapsibleSection title={`Downstream — "${data.node}" depends on`} icon={<ArrowRight size={14} className="text-blue-400" />} badge={String(data.downstream.count)}>
+            <CollapsibleSection title={`Downstream — "${data.node}" depends on`} icon={<ArrowRight size={14} className="text-[var(--color-accent)]" />} badge={String(data.downstream.count)}>
                 <TypeGroupedList by_type={data.downstream.by_type} direction="downstream" />
             </CollapsibleSection>
         </div>
@@ -166,22 +166,22 @@ export function ChainMode({ authHeaders }: { authHeaders: Record<string, string>
         <div className="space-y-5">
             <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-5">
                 <h2 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                    <Network size={16} className="text-blue-400" /> Find Dependency Chain
+                    <Network size={16} className="text-[var(--color-accent)]" /> Find Dependency Chain
                 </h2>
                 <div className="flex gap-3 items-end flex-wrap">
                     <div className="flex-1 min-w-[150px]">
                         <label className="block text-[10px] uppercase tracking-wider opacity-50 mb-1.5">Source</label>
                         <input value={source} onChange={e => setSource(e.target.value)} placeholder="e.g. auth-service"
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500/60 placeholder:opacity-40" />
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--color-accent)]/60 placeholder:opacity-40" />
                     </div>
                     <ArrowRight size={18} className="opacity-30 mb-3" />
                     <div className="flex-1 min-w-[150px]">
                         <label className="block text-[10px] uppercase tracking-wider opacity-50 mb-1.5">Target</label>
                         <input value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. payment-service"
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500/60 placeholder:opacity-40" />
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--color-accent)]/60 placeholder:opacity-40" />
                     </div>
                     <button onClick={find} disabled={loading || !source.trim() || !target.trim()}
-                        className="px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-500 hover:bg-blue-400 text-black disabled:opacity-40 transition-all flex items-center gap-2">
+                        className="px-4 py-2.5 rounded-lg text-sm font-bold bg-[var(--color-accent)] hover:opacity-90 text-[var(--color-accent-foreground)] disabled:opacity-40 transition-all flex items-center gap-2">
                         {loading ? <Loader2 size={14} className="animate-spin" /> : <Network size={14} />} Find Path
                     </button>
                 </div>

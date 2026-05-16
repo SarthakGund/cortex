@@ -124,12 +124,12 @@ export function SpecDiffMode({ authHeaders }: { authHeaders: Record<string, stri
             <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-5">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="font-semibold text-sm flex items-center gap-2">
-                        <GitCompare size={16} className="text-cyan-400" /> OpenAPI Spec Diff
+                        <GitCompare size={16} className="text-[var(--color-chart-2)]" /> OpenAPI Spec Diff
                     </h2>
                     <div className="flex gap-1">
                         {(["paste", "upload"] as const).map(t => (
                             <button key={t} onClick={() => setTab(t)}
-                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${tab === t ? "bg-cyan-500/20 text-cyan-400" : "opacity-50 hover:opacity-80"}`}>
+                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${tab === t ? "bg-[var(--color-chart-2)]/15 text-[var(--color-chart-2)]" : "opacity-50 hover:opacity-80"}`}>
                                 {t === "paste" ? "📋 Paste" : "📁 Upload"}
                             </button>
                         ))}
@@ -143,18 +143,18 @@ export function SpecDiffMode({ authHeaders }: { authHeaders: Record<string, stri
                                 <label className="block text-[10px] uppercase tracking-wider opacity-50 mb-1.5">Old Spec (YAML / JSON)</label>
                                 <textarea value={oldSpec} onChange={e => setOldSpec(e.target.value)} rows={12}
                                     placeholder="Paste old OpenAPI spec here…"
-                                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-cyan-500/60 resize-y placeholder:opacity-30" />
+                                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-[var(--color-chart-2)]/60 resize-y placeholder:opacity-30" />
                             </div>
                             <div>
                                 <label className="block text-[10px] uppercase tracking-wider opacity-50 mb-1.5">New Spec (YAML / JSON)</label>
                                 <textarea value={newSpec} onChange={e => setNewSpec(e.target.value)} rows={12}
                                     placeholder="Paste new OpenAPI spec here…"
-                                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-cyan-500/60 resize-y placeholder:opacity-30" />
+                                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-[var(--color-chart-2)]/60 resize-y placeholder:opacity-30" />
                             </div>
                         </div>
                         <div className="flex gap-3">
                             <button onClick={compare} disabled={loading || !oldSpec.trim() || !newSpec.trim()}
-                                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-cyan-500 hover:bg-cyan-400 text-black disabled:opacity-40 transition-all flex items-center gap-2">
+                                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-[var(--color-chart-2)] hover:opacity-90 text-[var(--color-primary-foreground)] disabled:opacity-40 transition-all flex items-center gap-2">
                                 {loading ? <Loader2 size={14} className="animate-spin" /> : <GitCompare size={14} />} Compare Specs
                             </button>
                             <button onClick={loadExample}
@@ -172,7 +172,7 @@ export function SpecDiffMode({ authHeaders }: { authHeaders: Record<string, stri
                             ].map(({ label, ref }) => (
                                 <div key={label}>
                                     <label className="block text-[10px] uppercase tracking-wider opacity-50 mb-1.5">{label}</label>
-                                    <div className="border-2 border-dashed border-white/10 rounded-xl p-6 text-center cursor-pointer hover:border-cyan-500/40 transition-colors"
+                                    <div className="border-2 border-dashed border-white/10 rounded-xl p-6 text-center cursor-pointer hover:border-[var(--color-chart-2)]/40 transition-colors"
                                         onClick={() => ref.current?.click()}>
                                         <Upload size={20} className="mx-auto opacity-30 mb-2" />
                                         <p className="text-xs opacity-50">.yaml / .yml / .json</p>
@@ -182,7 +182,7 @@ export function SpecDiffMode({ authHeaders }: { authHeaders: Record<string, stri
                             ))}
                         </div>
                         <button onClick={uploadCompare} disabled={loading}
-                            className="px-5 py-2.5 rounded-lg text-sm font-bold bg-cyan-500 hover:bg-cyan-400 text-black disabled:opacity-40 transition-all flex items-center gap-2">
+                            className="px-5 py-2.5 rounded-lg text-sm font-bold bg-[var(--color-chart-2)] hover:opacity-90 text-[var(--color-primary-foreground)] disabled:opacity-40 transition-all flex items-center gap-2">
                             {loading ? <Loader2 size={14} className="animate-spin" /> : <GitCompare size={14} />} Compare Files
                         </button>
                     </div>
@@ -203,10 +203,10 @@ function SpecDiffResults({ data }: { data: SpecDiffResult }) {
         <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-300">
             {/* Summary stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatCard icon={<AlertTriangle size={16} className="text-red-400" />} label="Breaking Changes" value={String(data.summary.total_breaking)} accent={data.summary.total_breaking > 0 ? "border-red-500/30" : undefined} />
-                <StatCard icon={<GitCompare size={16} className="text-cyan-400" />} label="Endpoints Affected" value={String(data.summary.endpoints_affected)} />
-                <StatCard icon={<GitCompare size={16} className="text-amber-400" />} label="Schemas Affected" value={String(data.summary.schemas_affected)} />
-                <StatCard icon={<CheckCircle2 size={16} className="text-green-400" />} label="Endpoints Added" value={String(data.added_endpoints.length)} />
+                <StatCard icon={<AlertTriangle size={16} className="text-[var(--color-destructive)]" />} label="Breaking Changes" value={String(data.summary.total_breaking)} accent={data.summary.total_breaking > 0 ? "border-[var(--color-destructive)]/30" : undefined} />
+                <StatCard icon={<GitCompare size={16} className="text-[var(--color-chart-2)]" />} label="Endpoints Affected" value={String(data.summary.endpoints_affected)} />
+                <StatCard icon={<GitCompare size={16} className="text-[var(--color-accent)]" />} label="Schemas Affected" value={String(data.summary.schemas_affected)} />
+                <StatCard icon={<CheckCircle2 size={16} className="text-[var(--color-chart-4)]" />} label="Endpoints Added" value={String(data.added_endpoints.length)} />
             </div>
 
             {/* Severity breakdown */}
@@ -217,12 +217,17 @@ function SpecDiffResults({ data }: { data: SpecDiffResult }) {
                         {severityOrder.map(sev => {
                             const count = bySeverity[sev] ?? 0;
                             const pct = data.summary.total_breaking > 0 ? (count / data.summary.total_breaking) * 100 : 0;
-                            const bars: Record<string, string> = { critical: "bg-red-500", high: "bg-orange-500", medium: "bg-yellow-500", low: "bg-green-500" };
+                            const bars: Record<string, string> = {
+                                critical: "var(--color-destructive)",
+                                high: "var(--color-primary)",
+                                medium: "var(--color-accent)",
+                                low: "var(--color-chart-4)",
+                            };
                             return (
                                 <div key={sev} className="flex items-center gap-3">
                                     <SeverityBadge severity={sev} />
                                     <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                                        <div className={`h-full ${bars[sev]} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: bars[sev] }} />
                                     </div>
                                     <span className="text-xs opacity-50 w-6 text-right">{count}</span>
                                 </div>
@@ -234,7 +239,7 @@ function SpecDiffResults({ data }: { data: SpecDiffResult }) {
 
             {/* Breaking changes list */}
             {data.breaking_changes.length > 0 && (
-                <CollapsibleSection title="All Breaking Changes" icon={<AlertTriangle size={14} className="text-red-400" />} badge={String(data.breaking_changes.length)} defaultOpen>
+                <CollapsibleSection title="All Breaking Changes" icon={<AlertTriangle size={14} className="text-[var(--color-destructive)]" />} badge={String(data.breaking_changes.length)} defaultOpen>
                     <div className="space-y-2">
                         {data.breaking_changes.map((bc, i) => <BreakingChangeRow key={i} bc={bc} />)}
                     </div>
@@ -243,12 +248,12 @@ function SpecDiffResults({ data }: { data: SpecDiffResult }) {
 
             {/* Added endpoints */}
             {data.added_endpoints.length > 0 && (
-                <CollapsibleSection title="Added Endpoints" icon={<Plus size={14} className="text-green-400" />} badge={String(data.added_endpoints.length)}>
+                <CollapsibleSection title="Added Endpoints" icon={<Plus size={14} className="text-[var(--color-chart-4)]" />} badge={String(data.added_endpoints.length)}>
                     <div className="space-y-1.5">
                         {data.added_endpoints.map((ep, i) => (
-                            <div key={i} className="flex items-center gap-3 bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2 text-xs">
-                                <Plus size={10} className="text-green-400 flex-shrink-0" />
-                                <code className="font-bold text-green-300">{ep.method}</code>
+                            <div key={i} className="flex items-center gap-3 bg-[var(--color-chart-4)]/5 border border-[var(--color-chart-4)]/20 rounded-lg px-3 py-2 text-xs">
+                                <Plus size={10} className="text-[var(--color-chart-4)] flex-shrink-0" />
+                                <code className="font-bold text-[var(--color-chart-4)]">{ep.method}</code>
                                 <code>{ep.path}</code>
                                 {ep.summary && <span className="opacity-50 truncate">{ep.summary}</span>}
                             </div>
@@ -259,12 +264,12 @@ function SpecDiffResults({ data }: { data: SpecDiffResult }) {
 
             {/* Removed endpoints */}
             {data.removed_endpoints.length > 0 && (
-                <CollapsibleSection title="Removed Endpoints" icon={<Minus size={14} className="text-red-400" />} badge={String(data.removed_endpoints.length)}>
+                <CollapsibleSection title="Removed Endpoints" icon={<Minus size={14} className="text-[var(--color-destructive)]" />} badge={String(data.removed_endpoints.length)}>
                     <div className="space-y-1.5">
                         {data.removed_endpoints.map((ep, i) => (
-                            <div key={i} className="flex items-center gap-3 bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2 text-xs">
-                                <Minus size={10} className="text-red-400 flex-shrink-0" />
-                                <code className="font-bold text-red-300">{ep.method}</code>
+                            <div key={i} className="flex items-center gap-3 bg-[var(--color-destructive)]/5 border border-[var(--color-destructive)]/20 rounded-lg px-3 py-2 text-xs">
+                                <Minus size={10} className="text-[var(--color-destructive)] flex-shrink-0" />
+                                <code className="font-bold text-[var(--color-destructive)]">{ep.method}</code>
                                 <code>{ep.path}</code>
                                 {ep.summary && <span className="opacity-50 truncate">{ep.summary}</span>}
                             </div>
@@ -275,11 +280,11 @@ function SpecDiffResults({ data }: { data: SpecDiffResult }) {
 
             {/* Impacted services from graph */}
             {data.impacted_services && data.impacted_services.length > 0 && (
-                <CollapsibleSection title="Graph-Matched Impacted Services" icon={<CheckCircle2 size={14} className="text-indigo-400" />} badge={String(data.impacted_services.length)}>
+                <CollapsibleSection title="Graph-Matched Impacted Services" icon={<CheckCircle2 size={14} className="text-[var(--color-chart-5)]" />} badge={String(data.impacted_services.length)}>
                     <div className="space-y-1.5">
                         {data.impacted_services.map((s, i) => (
-                            <div key={i} className="flex items-center gap-3 bg-indigo-500/5 border border-indigo-500/20 rounded-lg px-3 py-2 text-xs">
-                                <span className="px-1.5 py-0.5 rounded-full border border-indigo-500/30 text-indigo-300 text-[10px]">{s.type}</span>
+                            <div key={i} className="flex items-center gap-3 bg-[var(--color-chart-5)]/5 border border-[var(--color-chart-5)]/20 rounded-lg px-3 py-2 text-xs">
+                                <span className="px-1.5 py-0.5 rounded-full border border-[var(--color-chart-5)]/30 text-[var(--color-chart-5)] text-[10px]">{s.type}</span>
                                 <span className="font-medium">{s.service}</span>
                                 <span className="opacity-50 truncate">{s.detail}</span>
                             </div>

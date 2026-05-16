@@ -177,7 +177,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-grid">
-      <header className="sticky top-0 z-50 border-b-2 border-[var(--color-border)] bg-[var(--color-background)]">
+      <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-background)]">
         <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 flex items-center justify-center swiss-panel">
@@ -196,7 +196,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 value={activeRepoId ?? ""}
                 onChange={(e) => handleRepoChange(Number(e.target.value))}
                 disabled={repoLoading || repos.length === 0 || repoDeleting}
-                className="text-xs bg-[var(--color-card)] border-2 border-[var(--color-border)] px-2.5 py-2 text-[var(--color-foreground)] min-w-[200px]"
+                className="text-xs bg-[var(--color-card)] border border-[var(--color-border)] px-2.5 py-2 text-[var(--color-foreground)] min-w-[200px]"
               >
                 {repos.length === 0 ? (
                   <option value="">Add a repo to start</option>
@@ -212,7 +212,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={handleRepoDelete}
                 disabled={!activeRepoId || repoLoading || repoDeleting}
                 title="Delete ingested repo"
-                className="h-9 w-9 flex items-center justify-center border-2 border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-9 w-9 flex items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <X size={14} />
               </button>
@@ -254,7 +254,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex">
         <aside
-          className={`sticky top-16 h-[calc(100vh-4rem)] border-r-2 border-[var(--color-border)] bg-[var(--color-card)] transition-all duration-200 ${
+          className={`sticky top-16 h-[calc(100vh-4rem)] border-r border-[var(--color-border)] bg-[var(--color-card)] transition-all duration-200 ${
             collapsed ? "w-16" : "w-64"
           }`}
         >
@@ -276,7 +276,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.key}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2 text-sm transition-all border-2 border-transparent ${
+                className={`flex items-center gap-3 px-3 py-2 text-sm transition-all ${
                   isActive(item)
                     ? "swiss-button"
                     : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"

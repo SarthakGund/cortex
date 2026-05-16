@@ -68,9 +68,13 @@ export function RiskBanner({ risk, summary, areas, recs, breaking }: {
 
 function RiskDot({ risk }: { risk: string }) {
     const colors: Record<string, string> = {
-        LOW: "bg-green-400", MEDIUM: "bg-yellow-400", HIGH: "bg-orange-400", CRITICAL: "bg-red-400",
+        LOW: "var(--color-chart-4)",
+        MEDIUM: "var(--color-accent)",
+        HIGH: "var(--color-primary)",
+        CRITICAL: "var(--color-destructive)",
     };
-    return <span className={`w-3 h-3 rounded-full ${colors[risk] ?? "bg-slate-400"} shadow-lg`} />;
+    const color = colors[risk] ?? "var(--color-muted-foreground)";
+    return <span className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: color }} />;
 }
 
 // ── CollapsibleSection ─────────────────────────────────────────────────────
@@ -122,7 +126,16 @@ export function HeatBar({ items, label }: { items: BlastItem[]; label: string })
     const byType: Record<string, number> = {};
     for (const item of items) byType[item.type] = (byType[item.type] ?? 0) + 1;
     const total = items.length;
-    const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-emerald-500", "bg-cyan-500", "bg-indigo-500", "bg-purple-500", "bg-pink-500"];
+    const colors = [
+        "var(--color-destructive)",
+        "var(--color-primary)",
+        "var(--color-accent)",
+        "var(--color-chart-4)",
+        "var(--color-chart-5)",
+        "var(--color-chart-2)",
+        "var(--color-chart-3)",
+        "var(--color-foreground)",
+    ];
     const types = Object.entries(byType);
     return (
         <div className="mb-3">
@@ -133,8 +146,8 @@ export function HeatBar({ items, label }: { items: BlastItem[]; label: string })
                         {types.map(([type, count], i) => (
                             <div
                                 key={type}
-                                className={`${colors[i % colors.length]} transition-all`}
-                                style={{ width: `${(count / total) * 100}%` }}
+                                className="transition-all"
+                                style={{ width: `${(count / total) * 100}%`, backgroundColor: colors[i % colors.length] }}
                                 title={`${type}: ${count}`}
                             />
                         ))}
@@ -142,7 +155,7 @@ export function HeatBar({ items, label }: { items: BlastItem[]; label: string })
                     <div className="flex flex-wrap gap-2 mt-1.5">
                         {types.map(([type, count], i) => (
                             <span key={type} className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]">
-                                <span className={`w-2 h-2 rounded-full ${colors[i % colors.length]}`} />
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
                                 {type} ({count})
                             </span>
                         ))}
@@ -162,7 +175,7 @@ export function DirectionList({ items }: { items: DirectItem[] }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
             {items.map((d, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs bg-white/5 rounded-lg px-3 py-2 border border-white/10">
-                    <span className={`text-[10px] font-mono ${d.direction === "incoming" ? "text-red-400" : "text-blue-400"}`}>
+                    <span className={`text-[10px] font-mono ${d.direction === "incoming" ? "text-[var(--color-destructive)]" : "text-[var(--color-accent)]"}`}>
                         {d.direction === "incoming" ? "←" : "→"}
                     </span>
                     <TypeBadge type={d.type} />

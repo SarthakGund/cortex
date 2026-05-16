@@ -7,13 +7,13 @@ import { SeverityBadge, RiskBanner, CollapsibleSection, BreakingChangeRow, Migra
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 const SCENARIO_TYPES = [
-    { value: "deprecate_endpoint", label: "Deprecate Endpoint", icon: "⚠️", color: "text-yellow-400" },
-    { value: "remove_endpoint", label: "Remove Endpoint", icon: "🗑️", color: "text-red-400" },
-    { value: "change_field_type", label: "Change Field Type", icon: "🔄", color: "text-orange-400" },
-    { value: "remove_schema", label: "Remove Schema", icon: "💀", color: "text-red-500" },
-    { value: "add_schema", label: "Add New Schema", icon: "✨", color: "text-green-400" },
-    { value: "add_endpoint", label: "Add New Endpoint", icon: "➕", color: "text-green-400" },
-    { value: "change_endpoint_signature", "label": "Change Endpoint Signature", icon: "📝", color: "text-blue-400" },
+    { value: "deprecate_endpoint", label: "Deprecate Endpoint", icon: "⚠️", color: "text-[var(--color-accent)]" },
+    { value: "remove_endpoint", label: "Remove Endpoint", icon: "🗑️", color: "text-[var(--color-destructive)]" },
+    { value: "change_field_type", label: "Change Field Type", icon: "🔄", color: "text-[var(--color-primary)]" },
+    { value: "remove_schema", label: "Remove Schema", icon: "💀", color: "text-[var(--color-destructive)]" },
+    { value: "add_schema", label: "Add New Schema", icon: "✨", color: "text-[var(--color-chart-4)]" },
+    { value: "add_endpoint", label: "Add New Endpoint", icon: "➕", color: "text-[var(--color-chart-4)]" },
+    { value: "change_endpoint_signature", label: "Change Endpoint Signature", icon: "📝", color: "text-[var(--color-chart-2)]" },
 ];
 
 export function WhatIfMode({ authHeaders }: { authHeaders: Record<string, string> }) {
@@ -78,7 +78,7 @@ export function WhatIfMode({ authHeaders }: { authHeaders: Record<string, string
             {/* Config panel */}
             <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-5">
                 <h2 className="font-semibold text-sm mb-5 flex items-center gap-2">
-                    <FlaskConical size={16} className="text-purple-400" /> Configure What-If Scenario
+                    <FlaskConical size={16} className="text-[var(--color-chart-5)]" /> Configure What-If Scenario
                 </h2>
 
                 {/* Scenario picker */}
@@ -104,7 +104,7 @@ export function WhatIfMode({ authHeaders }: { authHeaders: Record<string, string
                         <div className="flex-1 relative">
                             <input value={searchQ} onChange={e => onSearchType(e.target.value)}
                                 placeholder="Search for a service, endpoint, schema…"
-                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500/60 placeholder:opacity-40" />
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-primary)]/60 placeholder:opacity-40" />
                             {searching && <Loader2 size={12} className="animate-spin absolute right-3 top-3 opacity-40" />}
                             {searchRes.length > 0 && (
                                 <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl shadow-2xl z-50 max-h-52 overflow-y-auto">
@@ -159,7 +159,7 @@ export function WhatIfMode({ authHeaders }: { authHeaders: Record<string, string
                 )}
 
                 <button onClick={run} disabled={loading || !target.trim()}
-                    className="px-5 py-2.5 rounded-lg text-sm font-bold bg-purple-500 hover:bg-purple-400 text-black disabled:opacity-40 transition-all flex items-center gap-2">
+                    className="px-5 py-2.5 rounded-lg text-sm font-bold bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)] disabled:opacity-40 transition-all flex items-center gap-2">
                     {loading ? <Loader2 size={14} className="animate-spin" /> : <FlaskConical size={14} />}
                     Simulate Scenario
                 </button>
@@ -176,10 +176,10 @@ function WhatIfResults({ data }: { data: WhatIfResult }) {
         <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-300">
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatCard icon={<FlaskConical size={16} className="text-purple-400" />} label="Scenario" value={data.scenario.type.replace(/_/g, " ")} />
-                <StatCard icon={<AlertTriangle size={16} className="text-red-400" />} label="Breaking Changes" value={String(data.breaking_changes.length)} accent="border-red-500/20" />
-                <StatCard icon={<GitMerge size={16} className="text-orange-400" />} label="Affected Nodes" value={String(data.affected_nodes.total_affected)} accent="border-orange-500/20" />
-                <StatCard icon={<Layers size={16} className="text-blue-400" />} label="Affected Services" value={String(data.affected_services.length)} sub={data.affected_services.slice(0, 2).join(", ")} />
+                <StatCard icon={<FlaskConical size={16} className="text-[var(--color-chart-5)]" />} label="Scenario" value={data.scenario.type.replace(/_/g, " ")} />
+                <StatCard icon={<AlertTriangle size={16} className="text-[var(--color-destructive)]" />} label="Breaking Changes" value={String(data.breaking_changes.length)} accent="border-[var(--color-destructive)]/20" />
+                <StatCard icon={<GitMerge size={16} className="text-[var(--color-primary)]" />} label="Affected Nodes" value={String(data.affected_nodes.total_affected)} accent="border-[var(--color-primary)]/20" />
+                <StatCard icon={<Layers size={16} className="text-[var(--color-accent)]" />} label="Affected Services" value={String(data.affected_services.length)} sub={data.affected_services.slice(0, 2).join(", ")} />
             </div>
 
             {/* Risk */}
@@ -187,7 +187,7 @@ function WhatIfResults({ data }: { data: WhatIfResult }) {
 
             {/* Breaking changes */}
             {data.breaking_changes.length > 0 && (
-                <CollapsibleSection title="Breaking Changes" icon={<AlertTriangle size={14} className="text-red-400" />} badge={String(data.breaking_changes.length)} defaultOpen>
+                <CollapsibleSection title="Breaking Changes" icon={<AlertTriangle size={14} className="text-[var(--color-destructive)]" />} badge={String(data.breaking_changes.length)} defaultOpen>
                     <div className="space-y-2">
                         {data.breaking_changes.map((bc, i) => (
                             <BreakingChangeRow key={i} bc={{ ...bc, severity: bc.severity as "critical" | "high" | "medium" | "low" | "none" }} />
@@ -198,11 +198,11 @@ function WhatIfResults({ data }: { data: WhatIfResult }) {
 
             {/* Cascading failures */}
             {data.cascading_failures.length > 0 && (
-                <CollapsibleSection title="Cascading Failure Paths" icon={<ChevronDown size={14} className="text-orange-400" />} badge={String(data.cascading_failures.length)}>
+                <CollapsibleSection title="Cascading Failure Paths" icon={<ChevronDown size={14} className="text-[var(--color-primary)]" />} badge={String(data.cascading_failures.length)}>
                     <div className="space-y-2">
                         {data.cascading_failures.map((cf, i) => (
-                            <div key={i} className="flex gap-3 rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 text-xs">
-                                <div className="w-1 bg-orange-500 rounded-full flex-shrink-0" />
+                            <div key={i} className="flex gap-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 px-3 py-2.5 text-xs">
+                                <div className="w-1 bg-[var(--color-primary)] rounded-full flex-shrink-0" />
                                 <div>
                                     <div className="flex items-center gap-2 mb-0.5">
                                         <SeverityBadge severity={cf.severity.toLowerCase()} />
@@ -219,7 +219,7 @@ function WhatIfResults({ data }: { data: WhatIfResult }) {
 
             {/* Migration plan */}
             {data.migration_steps.length > 0 && (
-                <CollapsibleSection title="Migration Plan" icon={<GitMerge size={14} className="text-green-400" />} defaultOpen>
+                <CollapsibleSection title="Migration Plan" icon={<GitMerge size={14} className="text-[var(--color-chart-4)]" />} defaultOpen>
                     <MigrationSteps steps={data.migration_steps} />
                 </CollapsibleSection>
             )}

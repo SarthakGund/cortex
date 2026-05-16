@@ -111,30 +111,30 @@ export interface WhatIfResult {
 export type ImpactMode = "blast" | "chain" | "whatif" | "specdiff";
 
 export const TYPE_COLORS: Record<string, string> = {
-    Service: "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
-    Module: "bg-violet-500/20 text-violet-300 border-violet-500/40",
-    File: "bg-purple-500/20 text-purple-300 border-purple-500/40",
-    Class: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
-    Function: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-    Schema: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-    Endpoint: "bg-red-500/20 text-red-300 border-red-500/40",
-    Database: "bg-orange-500/20 text-orange-300 border-orange-500/40",
-    Table: "bg-orange-500/20 text-orange-300 border-orange-500/40",
-    MessageQueue: "bg-pink-500/20 text-pink-300 border-pink-500/40",
-    Developer: "bg-lime-500/20 text-lime-300 border-lime-500/40",
+    Service: "bg-[var(--color-chart-4)]/15 text-[var(--color-chart-4)] border-[var(--color-chart-4)]/40",
+    Module: "bg-[var(--color-chart-5)]/15 text-[var(--color-chart-5)] border-[var(--color-chart-5)]/40",
+    File: "bg-[var(--color-chart-3)]/15 text-[var(--color-chart-3)] border-[var(--color-chart-3)]/40",
+    Class: "bg-[var(--color-chart-2)]/15 text-[var(--color-chart-2)] border-[var(--color-chart-2)]/40",
+    Function: "bg-[var(--color-chart-1)]/10 text-[var(--color-foreground)] border-[var(--color-border)]",
+    Schema: "bg-[var(--color-accent)]/15 text-[var(--color-accent)] border-[var(--color-accent)]/40",
+    Endpoint: "bg-[var(--color-destructive)]/15 text-[var(--color-destructive)] border-[var(--color-destructive)]/40",
+    Database: "bg-[var(--color-primary)]/15 text-[var(--color-primary)] border-[var(--color-primary)]/40",
+    Table: "bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/30",
+    MessageQueue: "bg-[var(--color-secondary)]/10 text-[var(--color-foreground)] border-[var(--color-border)]",
+    Developer: "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border-[var(--color-accent)]/30",
 };
 
 export const SEVERITY_CONFIG: Record<string, { color: string; bar: string; label: string }> = {
-    critical: { color: "text-red-400 border-red-500/50 bg-red-500/10", bar: "bg-red-500", label: "CRITICAL" },
-    high: { color: "text-orange-400 border-orange-500/50 bg-orange-500/10", bar: "bg-orange-500", label: "HIGH" },
-    medium: { color: "text-yellow-400 border-yellow-500/50 bg-yellow-500/10", bar: "bg-yellow-500", label: "MEDIUM" },
-    low: { color: "text-green-400 border-green-500/50 bg-green-500/10", bar: "bg-green-500", label: "LOW" },
-    none: { color: "text-slate-400 border-slate-500/50 bg-slate-500/10", bar: "bg-slate-500", label: "NONE" },
+    critical: { color: "text-[var(--color-destructive)] border-[var(--color-destructive)]/50 bg-[var(--color-destructive)]/10", bar: "bg-[var(--color-destructive)]", label: "CRITICAL" },
+    high: { color: "text-[var(--color-primary)] border-[var(--color-primary)]/50 bg-[var(--color-primary)]/10", bar: "bg-[var(--color-primary)]", label: "HIGH" },
+    medium: { color: "text-[var(--color-accent)] border-[var(--color-accent)]/50 bg-[var(--color-accent)]/10", bar: "bg-[var(--color-accent)]", label: "MEDIUM" },
+    low: { color: "text-[var(--color-chart-4)] border-[var(--color-chart-4)]/50 bg-[var(--color-chart-4)]/10", bar: "bg-[var(--color-chart-4)]", label: "LOW" },
+    none: { color: "text-[var(--color-muted-foreground)] border-[var(--color-border)] bg-[var(--color-muted)]", bar: "bg-[var(--color-border)]", label: "NONE" },
 };
 
 export const RISK_CONFIG: Record<string, { color: string; glow: string }> = {
-    LOW: { color: "text-green-400 bg-green-500/10 border-green-500/30", glow: "shadow-green-500/20" },
-    MEDIUM: { color: "text-yellow-400 bg-yellow-500/10 border-yellow-500/30", glow: "shadow-yellow-500/20" },
-    HIGH: { color: "text-orange-400 bg-orange-500/10 border-orange-500/30", glow: "shadow-orange-500/20" },
-    CRITICAL: { color: "text-red-400 bg-red-500/10 border-red-500/30", glow: "shadow-red-500/20" },
+    LOW: { color: "text-[var(--color-chart-4)] bg-[var(--color-chart-4)]/10 border-[var(--color-chart-4)]/30", glow: "shadow-md" },
+    MEDIUM: { color: "text-[var(--color-accent)] bg-[var(--color-accent)]/10 border-[var(--color-accent)]/30", glow: "shadow-md" },
+    HIGH: { color: "text-[var(--color-primary)] bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30", glow: "shadow-md" },
+    CRITICAL: { color: "text-[var(--color-destructive)] bg-[var(--color-destructive)]/10 border-[var(--color-destructive)]/30", glow: "shadow-md" },
 };
