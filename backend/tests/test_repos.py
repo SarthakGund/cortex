@@ -1,7 +1,6 @@
 """Tests for /repos routes."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 MOCK_REPO = {

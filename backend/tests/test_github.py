@@ -1,7 +1,6 @@
 """Tests for /github routes."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 MOCK_FLAT = [{"path": "src/main.py", "type": "blob", "size": 200}]

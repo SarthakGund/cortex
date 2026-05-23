@@ -56,7 +56,7 @@ class SnapshotService:
 
         try:
             nodes, edges = self._fetch_graph(driver)
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to fetch graph from Neo4j")
             return None
 
@@ -84,7 +84,7 @@ class SnapshotService:
             db.refresh(snap)
             logger.info("Saved snapshot #%s: %s (%d nodes, %d edges)", snap.id, snap_label, len(nodes), len(edges))
             return snap.to_dict()
-        except Exception as e:
+        except Exception:
             db.rollback()
             logger.exception("Error saving snapshot")
             return None
@@ -160,7 +160,7 @@ class SnapshotService:
                 q = q.filter(GraphSnapshot.service_name == service_name)
             snaps = q.order_by(GraphSnapshot.taken_at.desc()).limit(limit).all()
             return [s.to_dict() for s in snaps]
-        except Exception as e:
+        except Exception:
             logger.exception("Error listing snapshots")
             return []
         finally:
@@ -175,7 +175,7 @@ class SnapshotService:
                 q = q.filter(GraphSnapshot.service_name == service_name)
             snap = q.first()
             return snap.to_full_dict() if snap else None
-        except Exception as e:
+        except Exception:
             logger.exception("Error fetching snapshot #%s", snapshot_id)
             return None
         finally:

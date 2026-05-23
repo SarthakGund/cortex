@@ -1,6 +1,5 @@
 """Tests for /impact routes."""
 
-import pytest
 from unittest.mock import patch, MagicMock
 
 

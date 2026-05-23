@@ -1,10 +1,10 @@
+from typing import Optional
+
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 from services.ingestion_service import ingestion_service
 
 router = APIRouter(prefix="/ingest", tags=["Ingestion"])
-
-from typing import Optional
 
 class IngestRequest(BaseModel):
     repo_url: str

@@ -1,6 +1,5 @@
 """Tests for health / readiness probes."""
 
-import pytest
 from unittest.mock import patch, MagicMock
 
 

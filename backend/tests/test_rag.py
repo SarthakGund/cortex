@@ -1,6 +1,5 @@
 """Tests for /rag routes."""
 
-import pytest
 from unittest.mock import patch, MagicMock
 
 

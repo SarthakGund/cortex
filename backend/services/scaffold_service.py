@@ -22,7 +22,7 @@ import json
 import re
 import textwrap
 import zipfile
-from typing import Any, Optional
+from typing import Optional
 
 from core.config import settings
 from services.graph_service import graph_service
@@ -376,7 +376,7 @@ def _env_example(service: dict) -> str:
         elif db["type"] == "mongodb":
             lines.append(f"MONGODB_URL=mongodb://localhost:27017/{db['name']}")
         elif db["type"] == "redis":
-            lines.append(f"REDIS_URL=redis://localhost:6379/0")
+            lines.append("REDIS_URL=redis://localhost:6379/0")
     return "\n".join(lines) + "\n"
 
 

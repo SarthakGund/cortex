@@ -89,7 +89,7 @@ async def _do_sync(repo_key: str):
     try:
         result = rag_service.sync_graph_to_vector_store(repo_key)
         logger.info("[RAG Sync] %s", result)
-    except Exception as e:
+    except Exception:
         logger.exception("[RAG Sync] Failed for repo_key=%s", repo_key)
 
 

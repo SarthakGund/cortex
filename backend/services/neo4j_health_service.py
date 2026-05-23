@@ -113,7 +113,7 @@ class Neo4jHealthService:
         High-degree undocumented nodes are the most critical knowledge gaps.
         """
         rows = self._q(
-            f"""
+            """
             MATCH (n)
             WHERE labels(n)[0] IN $types
               AND (n.description IS NULL OR trim(n.description) = '')

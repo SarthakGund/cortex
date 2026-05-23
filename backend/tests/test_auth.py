@@ -1,6 +1,5 @@
 """Tests for /auth routes (GitHub OAuth flow)."""
 
-import pytest
 from unittest.mock import patch, MagicMock
 
 

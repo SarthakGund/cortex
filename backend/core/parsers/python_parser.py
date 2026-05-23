@@ -53,7 +53,6 @@ class PythonASTParser:
 
         # Group bases per class by proximity in the source
         classes = []
-        base_texts = [code[n.start_byte:n.end_byte] for n in base_nodes]
 
         # Simple approach: each class_name captures one node
         for node in class_nodes:

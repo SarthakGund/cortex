@@ -11,7 +11,7 @@ Handles "what if" questions like:
 
 from __future__ import annotations
 
-from typing import Optional, Any
+from typing import Optional
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -20,8 +20,6 @@ from services.llm_service import llm_service
 from services.openapi_service import (
     BreakingChangeSeverity,
     BreakingChange,
-    OpenAPISpec,
-    parse_openapi_spec,
 )
 
 
@@ -536,7 +534,7 @@ def analyze_schema_evolution(
     Analyze the impact of evolving a schema definition.
     Returns field-level impact analysis.
     """
-    from services.openapi_service import _flatten_fields, _compare_fields, BreakingChangeSeverity
+    from services.openapi_service import _flatten_fields, _compare_fields
 
     old_fields = _flatten_fields(old_schema) if old_schema else {}
     new_fields = _flatten_fields(new_schema) if new_schema else {}

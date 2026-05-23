@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from services.graph_service import graph_service
 from services.llm_service import llm_service
-from core.config import settings
 
 logger = logging.getLogger(__name__)
 

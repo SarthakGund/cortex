@@ -101,7 +101,7 @@ class CommitService:
         except IntegrityError:
             db.rollback()
             logger.debug("Commit %s already exists (integrity error)", commit_hash[:7])
-        except Exception as e:
+        except Exception:
             db.rollback()
             logger.exception("Error storing commit %s", commit_hash[:7])
         finally:
@@ -117,7 +117,7 @@ class CommitService:
             result = [commit.to_dict() for commit in commits]
             logger.debug("Fetched %d commits from database", len(result))
             return result
-        except Exception as e:
+        except Exception:
             logger.exception("Error fetching commits")
             return []
         finally:

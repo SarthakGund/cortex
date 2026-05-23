@@ -6,8 +6,6 @@ from fastapi.responses import RedirectResponse
 import requests
 
 from core.config import settings
-from core.database import SessionLocal
-from core.models import User
 
 logger = logging.getLogger(__name__)
 

@@ -132,7 +132,7 @@ async def get_recent_commits(request: Request, limit: int = 20):
         commits = commit_service.get_recent_summaries(limit=limit, service_name=repo.repo_key)
         logger.info("Returning %d commits for %s", len(commits), repo.repo_key)
         return commits
-    except Exception as e:
+    except Exception:
         logger.exception("Error fetching commits for %s", repo.repo_key)
         return []
 

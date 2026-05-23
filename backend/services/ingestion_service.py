@@ -3,7 +3,6 @@ import logging
 import os
 import subprocess
 import tempfile
-import traceback
 
 from services.graph_service import graph_service
 from services.llm_service import llm_service
@@ -309,7 +308,7 @@ class IngestionService:
                             self._ingest_ts_js_file(service_name, file_path, module_name, code, lang="js", repo_dir=temp_dir)
                             file_count += 1
 
-                    except Exception as e:
+                    except Exception:
                         logger.exception("Error ingesting file %s", file_path)
 
         # 5. Create Webhook
@@ -404,7 +403,7 @@ class IngestionService:
                 record_event("CREATE", "File", file_path, service=service_name,
                               details={"extension": ext, "module": module_name}, source="ingestion")
                 file_count += 1
-            except Exception as e:
+            except Exception:
                 logger.exception("Error ingesting file %s", file_path)
 
         msg = f"GitHub ingestion complete: {file_count} files processed from '{service_name}'."
@@ -418,7 +417,7 @@ class IngestionService:
             from services.rag_service import rag_service
             rag_result = rag_service.sync_graph_to_vector_store(service_name)
             logger.info("[Ingestion] RAG sync complete: %s docs indexed", rag_result.get('document_count', '?'))
-        except Exception as rag_err:
+        except Exception:
             logger.exception("[Ingestion] RAG auto-sync failed for %s", service_name)
 
         return {"status": "success", "message": msg, "files_processed": file_count, "files_skipped": skipped_count}
@@ -450,7 +449,7 @@ class IngestionService:
             from services.rag_service import rag_service
             rag_result = rag_service.sync_graph_to_vector_store()
             logger.info("[Multi-repo] RAG sync complete: %s docs indexed", rag_result.get('document_count', '?'))
-        except Exception as rag_err:
+        except Exception:
             logger.exception("[Multi-repo] RAG auto-sync failed")
 
         return {

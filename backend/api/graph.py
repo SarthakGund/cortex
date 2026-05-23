@@ -120,7 +120,7 @@ def get_service_subgraph(request: Request, service_name: str):
     all nodes reachable within 4 hops. Used for per-service drill-down.
     """
     user = user_repo_service.require_user(request)
-    repo = user_repo_service.get_active_repo(user)
+    user_repo_service.get_active_repo(user)
 
     with graph_service.driver.session() as session:
         result = session.run(

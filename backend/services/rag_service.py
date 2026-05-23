@@ -17,12 +17,10 @@ import json
 import logging
 import os
 import re
-from typing import Any, Optional
 
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
-from core.config import settings
 from services.graph_service import graph_service
 from services.llm_service import llm_service
 

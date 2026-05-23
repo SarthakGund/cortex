@@ -62,7 +62,7 @@ def record_event(
             entity_name=entity_name, service=service,
             details=detail_json, source=source, ts=ts,
         )
-        rec = result.single()
+        result.single()
 
     return {
         "action": action,

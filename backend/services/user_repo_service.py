@@ -98,7 +98,7 @@ class UserRepoService:
                 db.refresh(existing)
                 return existing.to_dict()
 
-            if db.query(UserRepo).filter(UserRepo.user_id == user.id, UserRepo.is_active == True).count() == 0:
+            if db.query(UserRepo).filter(UserRepo.user_id == user.id, UserRepo.is_active).count() == 0:
                 is_active = True
             else:
                 is_active = False
@@ -142,7 +142,7 @@ class UserRepoService:
         try:
             repo = (
                 db.query(UserRepo)
-                .filter(UserRepo.user_id == user.id, UserRepo.is_active == True)
+                .filter(UserRepo.user_id == user.id, UserRepo.is_active)
                 .first()
             )
             if not repo:

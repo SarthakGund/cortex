@@ -16,7 +16,6 @@ What-If Analyzer endpoints:
 """
 
 from fastapi import APIRouter, Query as QParam, Request, Body, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
 from typing import Optional
 import json
 
@@ -30,8 +29,6 @@ from services.whatif_service import (
 from services.openapi_service import (
     parse_openapi_spec,
     generate_diff,
-    OpenAPISpec,
-    SpecDiff,
 )
 from services.user_repo_service import user_repo_service
 from services.graph_service import graph_service
@@ -331,7 +328,6 @@ async def get_schema_evolution(
     If old_schema and new_schema are provided, compares them statically.
     Otherwise, gets schema from graph and simulates a removal.
     """
-    from services.openapi_service import _parse_schema_definition
 
     user = user_repo_service.require_user(request)
     repo = user_repo_service.get_active_repo(user)
@@ -350,7 +346,7 @@ async def get_schema_evolution(
     # Get affected nodes
     try:
         affected = blast_radius(schema_name, node_type="Schema", depth=depth, repo_key=repo.repo_key)
-    except Exception as e:
+    except Exception:
         affected = {"upstream": {"count": 0, "by_type": {}, "items": []}, "downstream": {"count": 0}, "affected_services": [], "total_affected": 0}
 
     if old_s and new_s:

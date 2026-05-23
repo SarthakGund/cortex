@@ -1,7 +1,6 @@
 """Tests for /ingest routes."""
 
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch
 
 
 # ---------------------------------------------------------------------------
@@ -9,7 +8,7 @@ from unittest.mock import patch, AsyncMock, MagicMock
 # ---------------------------------------------------------------------------
 
 def test_ingest_accepts_valid_repo(authed_client):
-    with patch("services.ingestion_service.IngestionService.ingest_repository") as mock_ingest:
+    with patch("services.ingestion_service.IngestionService.ingest_repository"):
         resp = authed_client.post("/ingest/", json={"repo_url": "https://github.com/org/repo"})
     assert resp.status_code == 200
     data = resp.json()

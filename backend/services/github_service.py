@@ -1,7 +1,9 @@
 import base64
 import logging
 import httpx
+import requests
 from typing import Optional
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +128,6 @@ class GitHubService:
 
 github_service = GitHubService()
 
-import requests
-from core.config import settings
 
 class GitHubWebhookService:
     def __init__(self):
