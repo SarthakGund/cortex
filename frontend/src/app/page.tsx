@@ -302,7 +302,7 @@ function IngestTab() {
   const [statsLoading, setStatsLoading] = useState(false);
   const { user: githubUser, token: githubToken, logout: handleGithubLogout } = useAuth();
   const githubConnected = !!(githubUser || githubToken);
-  const authHeaders = useMemo(() => {
+  const authHeaders = useMemo((): Record<string, string> => {
     if (!githubToken) return {};
     return { Authorization: `Bearer ${githubToken}` };
   }, [githubToken]);
@@ -784,7 +784,7 @@ function ChatTab() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const authHeaders = useMemo(() => {
+  const authHeaders = useMemo((): Record<string, string> => {
     if (!token) return {};
     return { Authorization: `Bearer ${token}` };
   }, [token]);
@@ -793,12 +793,12 @@ function ChatTab() {
   //   bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   // }, [messages]);
 
-  // const autoResize = () => {
-  //   const ta = textareaRef.current;
-  //   if (!ta) return;
-  //   ta.style.height = "auto";
-  //   ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
-  // };
+  const autoResize = () => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+  };
 
   const handleSend = async () => {
     const q = input.trim();
@@ -993,7 +993,7 @@ function CommitsTab() {
   const [commits, setCommits] = useState<CommitSummary[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const authHeaders = useMemo(() => {
+  const authHeaders = useMemo((): Record<string, string> => {
     if (!token) return {};
     return { Authorization: `Bearer ${token}` };
   }, [token]);
@@ -1124,7 +1124,7 @@ function ExplorerTab() {
   const [fileLoading, setFileLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const authHeaders = useMemo(() => {
+  const authHeaders = useMemo((): Record<string, string> => {
     if (!token) return {};
     return { Authorization: `Bearer ${token}` };
   }, [token]);

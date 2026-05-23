@@ -82,7 +82,7 @@ function NodeTag({ label, name }: { label: string; name: string }) {
 
 function GraphSnapshotsView() {
   const { token } = useAuth();
-  const authHeaders = useMemo(() => {
+  const authHeaders = useMemo((): Record<string, string> => {
     if (!token) return {};
     return { Authorization: `Bearer ${token}` };
   }, [token]);

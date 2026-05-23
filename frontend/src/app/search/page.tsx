@@ -74,7 +74,7 @@ const TYPE_ICONS: Record<string, string> = {
 
 export default function SearchPage() {
   const { token } = useAuth();
-  const authHeaders = useMemo(() => {
+  const authHeaders = useMemo((): Record<string, string> => {
     if (!token) return {};
     return { Authorization: `Bearer ${token}` };
   }, [token]);

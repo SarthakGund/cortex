@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { Node, Edge } from 'reactflow'
 import { useAuth } from '../context/AuthContext'
 
@@ -22,7 +23,7 @@ import { API_BASE } from "@/lib/api"
 
 export default function GraphPage() {
   const { token } = useAuth()
-  const authHeaders = useMemo(() => {
+  const authHeaders = useMemo((): Record<string, string> => {
     if (!token) return {}
     return { Authorization: `Bearer ${token}` }
   }, [token])

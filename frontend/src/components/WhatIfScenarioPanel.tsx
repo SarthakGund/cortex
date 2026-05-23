@@ -391,10 +391,11 @@ function CascadeRow({ failure }: { failure: CascadingFailure }) {
 }
 
 function ComponentList({ items }: { items: any[] }) {
-  const groupedByType = items.reduce((acc, item) => {
-    acc.setdefault(item.type, []).push(item)
+  const groupedByType = items.reduce((acc: Map<string, any[]>, item) => {
+    if (!acc.has(item.type)) acc.set(item.type, [])
+    acc.get(item.type)!.push(item)
     return acc
-  }, new Map())
+  }, new Map<string, any[]>())
 
   return (
     <div className="space-y-2">
