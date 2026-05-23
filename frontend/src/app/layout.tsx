@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
-import AuthGate from "./components/AuthGate";
 import AppShell from "./components/AppShell";
-
-
 
 export const metadata: Metadata = {
   title: "Weavr — Knowledge Graph Intelligence",
@@ -26,9 +23,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <AuthProvider>
-          <AuthGate>
-            <AppShell>{children}</AppShell>
-          </AuthGate>
+          <AppShell>{children}</AppShell>
         </AuthProvider>
       </body>
     </html>

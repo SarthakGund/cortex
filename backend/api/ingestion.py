@@ -16,11 +16,11 @@ class MultiRepoRequest(BaseModel):
     repos: list[IngestRequest]
 
 @router.post("/")
-async def trigger_ingestion(request: IngestRequest, background_tasks: BackgroundTasks):
-    # In a real system, this would trigger a Celery task
-    background_tasks.add_task(ingestion_service.ingest_repository, request.repo_url, request.github_token)
+async def trigger_ingestion(request: IngestRequest, background_tasks: BackgroundTasks, http_request: Request):
     """Ingest a repository by cloning it locally (requires git)."""
-    background_tasks.add_task(ingestion_service.ingest_repository, request.repo_url)
+    from services.user_repo_service import user_repo_service
+    user_repo_service.require_user(http_request)
+    background_tasks.add_task(ingestion_service.ingest_repository, request.repo_url, request.github_token)
     return {"message": f"Ingestion started for {request.repo_url}", "status": "processing"}
 
 @router.post("/github")
@@ -61,8 +61,10 @@ async def trigger_github_ingestion(
     }
 
 @router.post("/multi")
-async def trigger_multi_repo_ingestion(request: MultiRepoRequest, background_tasks: BackgroundTasks):
+async def trigger_multi_repo_ingestion(request: MultiRepoRequest, background_tasks: BackgroundTasks, http_request: Request):
     """Ingest multiple repositories and discover cross-repo dependencies."""
+    from services.user_repo_service import user_repo_service
+    user_repo_service.require_user(http_request)
     repos = [{"repo_url": r.repo_url, "branch": r.branch} for r in request.repos]
     background_tasks.add_task(ingestion_service.ingest_multiple_repos, repos)
     return {

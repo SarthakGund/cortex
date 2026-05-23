@@ -262,7 +262,9 @@ async def diff_specs_upload(
         impacted = diff.get_impacted_services(graph_service)
         result["impacted_services"] = impacted
     except Exception:
-        pass
+        import logging as _log
+        _log.getLogger(__name__).exception("Failed to compute impacted services for spec diff")
+        result["impacted_services"] = []
 
     return result
 

@@ -2,53 +2,71 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 
+interface GitHubUser {
+  github_id: number;
+  login: string;
+  avatar_url: string;
+}
+
 interface AuthContextType {
+  user: GitHubUser | null;
+  /** @deprecated Use cookie-based auth. Kept for gradual migration of existing API calls. */
   token: string | null;
   loading: boolean;
-  login: (token: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
+  user: null,
   token: null,
   loading: true,
-  login: () => {},
-  logout: () => {},
+  logout: async () => {},
 });
 
+import { API_BASE } from "@/lib/api";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<GitHubUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle OAuth callback: ?token=xxx or ?error=xxx
+    // If the URL still contains ?token= (legacy fallback for old sessions),
+    // store it in sessionStorage and clean the URL.
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get("token");
     if (urlToken) {
+      sessionStorage.setItem("github_token", urlToken);
       setToken(urlToken);
-      localStorage.setItem("github_token", urlToken);
       window.history.replaceState({}, "", window.location.pathname);
-      setLoading(false);
-      return;
+    } else {
+      const stored = sessionStorage.getItem("github_token");
+      if (stored) setToken(stored);
     }
-    // Load from storage
-    const stored = localStorage.getItem("github_token");
-    if (stored) setToken(stored);
-    setLoading(false);
+
+    // Primary auth check: call /auth/me which reads the httpOnly cookie.
+    // This works even when no token is in sessionStorage.
+    fetch(`${API_BASE}/auth/me`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.login) setUser(data as GitHubUser);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const login = useCallback((t: string) => {
-    setToken(t);
-    localStorage.setItem("github_token", t);
-  }, []);
-
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
+    sessionStorage.removeItem("github_token");
+    setUser(null);
     setToken(null);
-    localStorage.removeItem("github_token");
   }, []);
 
   return (
-    <AuthContext.Provider value={{ token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

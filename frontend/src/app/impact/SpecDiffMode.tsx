@@ -4,7 +4,7 @@ import { GitCompare, Upload, Loader2, CheckCircle2, AlertTriangle, Minus, Plus }
 import type { SpecDiffResult } from "./types";
 import { BreakingChangeRow, CollapsibleSection, SeverityBadge, StatCard } from "./components";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 const EXAMPLE_OLD = `openapi: "3.0.0"
 info:

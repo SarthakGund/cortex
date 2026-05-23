@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 // Types
 
@@ -283,7 +283,7 @@ export default function HealthPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/knowledge-health/dashboard`, { headers: authHeaders });
+      const res = await fetch(`${API}/knowledge-health/dashboard`, { headers: authHeaders, credentials: "include" });
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const json = await res.json();
       setData(json);
@@ -324,6 +324,7 @@ export default function HealthPage() {
       const res = await fetch(`${API}/knowledge-health/suggest`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
+        credentials: "include",
         body: JSON.stringify({ name, node_type: nodeType }),
       });
       const json = await res.json();
@@ -342,6 +343,7 @@ export default function HealthPage() {
       const res = await fetch(`${API}/knowledge-health/suggest-update`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
+        credentials: "include",
         body: JSON.stringify({ doc_name: docName, service }),
       });
       const json = await res.json();
@@ -357,7 +359,7 @@ export default function HealthPage() {
     if (activeTemplate?.type === type) { setActiveTemplate(null); return; }
     setLoadingTemplate(true);
     try {
-      const res = await fetch(`${API}/knowledge-health/templates/${type}`, { headers: authHeaders });
+      const res = await fetch(`${API}/knowledge-health/templates/${type}`, { headers: authHeaders, credentials: "include" });
       const json = await res.json();
       setActiveTemplate(json);
     } catch {

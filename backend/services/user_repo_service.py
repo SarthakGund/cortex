@@ -4,10 +4,16 @@ from typing import Optional
 
 from core.database import SessionLocal
 from core.models import User, UserRepo
+from core.token_encryption import encrypt_token, decrypt_token
 
 
 class UserRepoService:
     def _get_token(self, request: Request) -> str:
+        # Prefer the httpOnly cookie set during OAuth callback
+        cookie_token = request.cookies.get("github_token")
+        if cookie_token:
+            return cookie_token
+        # Fall back to Authorization header (API clients, Swagger UI)
         auth = request.headers.get("Authorization", "")
         if auth.lower().startswith("bearer "):
             return auth.split(" ", 1)[1].strip()
@@ -34,20 +40,25 @@ class UserRepoService:
         try:
             user = db.query(User).filter(User.github_id == gh_user["id"]).first()
             if user:
-                if user.token != token:
-                    user.token = token
+                # Re-encrypt if the plaintext token has changed since last login.
+                if decrypt_token(user.token) != token:
+                    user.token = encrypt_token(token)
                     db.commit()
+                # Always expose the plaintext token to callers for this request.
+                user.token = token
                 return user
 
             user = User(
                 github_id=gh_user["id"],
                 login=gh_user.get("login", ""),
                 avatar_url=gh_user.get("avatar_url"),
-                token=token,
+                token=encrypt_token(token),
             )
             db.add(user)
             db.commit()
             db.refresh(user)
+            # Expose plaintext for callers — the DB row holds the encrypted copy.
+            user.token = token
             return user
         finally:
             db.close()

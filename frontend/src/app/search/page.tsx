@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 /* ── Types ──────────────────────────────────────────────────────────────────── */
 
@@ -91,12 +91,12 @@ export default function SearchPage() {
 
   // Fetch graph stats on mount
   useEffect(() => {
-    fetch(`${API}/graph/stats`, { headers: authHeaders })
+    fetch(`${API}/graph/stats`, { headers: authHeaders, credentials: "include" })
       .then((r) => r.json())
       .then((d) => setGraphStats(d.stats || []))
       .catch(() => {});
     // Fetch services for filter
-    fetch(`${API}/impact/search?q=&node_type=Service&limit=100`, { headers: authHeaders })
+    fetch(`${API}/impact/search?q=&node_type=Service&limit=100`, { headers: authHeaders, credentials: "include" })
       .then((r) => r.json())
       .then((d) => setServices((d.results || []).map((r: SearchResult) => r.name)))
       .catch(() => {});
@@ -114,7 +114,7 @@ export default function SearchPage() {
         params.set("q", q || " ");
         if (type) params.set("node_type", type);
         params.set("limit", "50");
-        const r = await fetch(`${API}/impact/search?${params}`, { headers: authHeaders });
+        const r = await fetch(`${API}/impact/search?${params}`, { headers: authHeaders, credentials: "include" });
         const d = await r.json();
         setResults(d.results || []);
       } catch {
@@ -158,12 +158,12 @@ export default function SearchPage() {
       const url = `${API}/graph/export/${format}?${params}`;
 
       if (format === "json") {
-        const r = await fetch(url, { headers: authHeaders });
+        const r = await fetch(url, { headers: authHeaders, credentials: "include" });
         const d = await r.json();
         const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
         downloadBlob(blob, `graph_export.json`);
       } else {
-        const r = await fetch(url, { headers: authHeaders });
+        const r = await fetch(url, { headers: authHeaders, credentials: "include" });
         const text = await r.text();
         const mimeType = format === "csv" ? "text/csv" : "text/plain";
         const blob = new Blob([text], { type: mimeType });

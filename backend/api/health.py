@@ -20,12 +20,76 @@ Repo-Scanner routes:
   POST /knowledge-health/push             – commit & push all accepted fixes
 """
 
+import logging
+
 from fastapi import APIRouter, Query as QParam, Body, HTTPException
+from fastapi.responses import JSONResponse
 from services.neo4j_health_service import neo4j_health_service
 from services.health_service import health_service          # repo scanner (HealthService)
 from services.git_push_service import git_push_service     # commit/push + GitHub auth
+from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/knowledge-health", tags=["Knowledge Health"])
+
+
+# ── Liveness & Readiness Probes (for Kubernetes / ECS / load balancers) ───────
+
+@router.get("/live", tags=["Probes"])
+def liveness():
+    """Liveness probe — returns 200 if the process is running."""
+    return {"status": "ok"}
+
+
+@router.get("/ready", tags=["Probes"])
+def readiness():
+    """
+    Readiness probe — returns 200 only when all critical dependencies are reachable.
+    Returns 503 if any check fails so the load balancer stops routing traffic here.
+    """
+    checks: dict[str, str] = {}
+    healthy = True
+
+    # Neo4j
+    try:
+        with neo4j_health_service.driver.session() as s:
+            s.run("RETURN 1")
+        checks["neo4j"] = "ok"
+    except Exception as e:
+        logger.warning("Readiness: Neo4j unreachable — %s", e)
+        checks["neo4j"] = f"error: {e}"
+        healthy = False
+
+    # Qdrant
+    try:
+        import httpx
+        r = httpx.get(f"{settings.QDRANT_URL}/healthz", timeout=5)
+        checks["qdrant"] = "ok" if r.is_success else f"http {r.status_code}"
+        if not r.is_success:
+            healthy = False
+    except Exception as e:
+        logger.warning("Readiness: Qdrant unreachable — %s", e)
+        checks["qdrant"] = f"error: {e}"
+        healthy = False
+
+    # Relational DB
+    try:
+        from core.database import SessionLocal
+        db = SessionLocal()
+        db.execute(__import__("sqlalchemy").text("SELECT 1"))
+        db.close()
+        checks["database"] = "ok"
+    except Exception as e:
+        logger.warning("Readiness: Database unreachable — %s", e)
+        checks["database"] = f"error: {e}"
+        healthy = False
+
+    status_code = 200 if healthy else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={"status": "ready" if healthy else "not_ready", "checks": checks},
+    )
 
 
 @router.get("/dashboard")

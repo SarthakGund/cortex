@@ -322,8 +322,10 @@ def _dockerfile(service: dict) -> str:
             CMD ["./service"]
         """)
 
-    # fallback
-    return f"# Dockerfile for {lang}/{framework}\n# TODO: add build steps\nEXPOSE {port}\n"
+    raise ValueError(
+        f"Unsupported language/framework combination: {lang}/{framework}. "
+        "Supported languages: python, typescript, go."
+    )
 
 
 def _requirements(service: dict) -> str:

@@ -8,10 +8,14 @@ Endpoints:
   GET  /rag/stats      – Collection statistics
 """
 
+import logging
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from pydantic import BaseModel, Field
 from services.rag_service import rag_service
 from services.user_repo_service import user_repo_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/rag", tags=["RAG"])
 
@@ -84,9 +88,9 @@ async def _do_sync(repo_key: str):
     """Background wrapper so errors don't crash the server."""
     try:
         result = rag_service.sync_graph_to_vector_store(repo_key)
-        print(f"[RAG Sync] {result}")
+        logger.info("[RAG Sync] %s", result)
     except Exception as e:
-        print(f"[RAG Sync] ERROR: {e}")
+        logger.exception("[RAG Sync] Failed for repo_key=%s", repo_key)
 
 
 @router.post("/sync/wait", response_model=SyncResponse)
@@ -95,29 +99,16 @@ async def sync_graph_sync(request: Request):
     Synchronous version of /rag/sync (waits for completion).
     Useful for smaller graphs or during development.
     """
-    import traceback
-
-    print("\n" + "="*60)
-    print("[RAG /sync/wait] ▶ Endpoint hit")
-    print(f"[RAG /sync/wait]   rag_service object : {rag_service}")
-    print(f"[RAG /sync/wait]   LLM enabled        : {rag_service._llm_enabled}")
-    print(f"[RAG /sync/wait]   ChromaDB collection: {rag_service._collection.name}")
-    print(f"[RAG /sync/wait]   Docs before sync   : {rag_service._collection.count()}")
-    print("="*60)
-
     user = user_repo_service.require_user(request)
     repo = user_repo_service.get_active_repo(user)
 
+    logger.info("RAG sync/wait triggered for repo: %s", repo.repo_key)
     try:
-        print("[RAG /sync/wait] Calling sync_graph_to_vector_store() ...")
         result = rag_service.sync_graph_to_vector_store(repo.repo_key)
-        print(f"[RAG /sync/wait] ✅ Sync finished. Raw result: {result}")
-        print(f"[RAG /sync/wait]   Docs after sync: {rag_service._collection.count()}")
+        logger.info("RAG sync complete for %s: %s", repo.repo_key, result)
         return SyncResponse(**result)
     except Exception as e:
-        print(f"[RAG /sync/wait] ❌ Exception: {type(e).__name__}: {e}")
-        print("[RAG /sync/wait] Full traceback:")
-        traceback.print_exc()
+        logger.exception("RAG sync failed for %s", repo.repo_key)
         return SyncResponse(status="error", message=f"{type(e).__name__}: {e}", document_count=0)
 
 

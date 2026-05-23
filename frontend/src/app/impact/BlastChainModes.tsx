@@ -4,7 +4,7 @@ import { Search, Loader2, Target, ArrowLeft, ArrowRight, Network, Shield, Zap } 
 import type { BlastRadius, ChainResult, SearchResult } from "./types";
 import { StatCard, HeatBar, RiskBanner, CollapsibleSection, DirectionList, TypeGroupedList } from "./components";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 // ── Blast Radius Mode ──────────────────────────────────────────────────────
 

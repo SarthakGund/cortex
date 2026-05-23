@@ -34,11 +34,16 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_ID: Optional[str] = None
     GITHUB_CLIENT_SECRET: Optional[str] = None
     FRONTEND_URL: str = "http://localhost:3000"
+    WEBHOOK_SECRET: Optional[str] = None
 
     google_api_key: Optional[str] = None
 
     # GitHub API token (optional — increases rate limit from 60 to 5000 req/hr)
     github_token: Optional[str] = None
+
+    # Fernet key for encrypting GitHub tokens at rest in the DB.
+    # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    TOKEN_ENCRYPTION_KEY: Optional[str] = None
 
     class Config:
         env_file = str(_ENV_FILE)

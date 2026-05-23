@@ -1,15 +1,15 @@
 version: '3.8'
 
 services:
-  # Graph Database for the Living Knowledge Graph
+  # ── Graph Database ────────────────────────────────────────────────────────────
   neo4j:
     image: neo4j:5.15.0
     container_name: spit_neo4j
     ports:
-      - "7474:7474" # HTTP
-      - "7687:7687" # Bolt
+      - "7474:7474"   # HTTP browser
+      - "7687:7687"   # Bolt
     environment:
-      - NEO4J_AUTH=neo4j/password
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-changeme}
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_apoc_import_file_enabled=true
       - NEO4J_apoc_import_file_use__neo4j__config=true
@@ -17,6 +17,64 @@ services:
     volumes:
       - neo4j_data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD:-changeme}", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── Vector Database ───────────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: spit_qdrant
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── Relational Database ───────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: spit_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=spit_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Cache / Message Broker ────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: spit_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
 volumes:
   neo4j_data:
+  qdrant_data:
+  redis_data:
+  postgres_data:

@@ -1,7 +1,10 @@
 import json
+import logging
 from types import SimpleNamespace
 import httpx
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class GroqModel:
@@ -45,11 +48,11 @@ class LLMService:
             try:
                 self.model = GroqModel(settings.GROQ_API_KEY, model_name)
                 self.enabled = True
-                print(f"[LLM] ✅ Groq configured successfully ({model_name})")
+                logger.info("Groq configured successfully (%s)", model_name)
             except Exception as e:
-                print(f"[LLM] Failed to configure Groq: {e}")
+                logger.error("Failed to configure Groq: %s", e)
         else:
-            print("[LLM] GROQ_API_KEY not set. LLM features disabled.")
+            logger.warning("GROQ_API_KEY not set — LLM features disabled.")
 
     def generate_text(self, prompt: str, temperature: float = 0.2, max_output_tokens: int = 2048) -> str:
         if not self.enabled or not self.model:
@@ -124,11 +127,11 @@ JSON array:
                         "method": str(item["method"]).upper()
                     })
 
-            print(f"  [LLM] Validated endpoints for {file_name}: {cleaned}")
+            logger.debug("Validated endpoints for %s: %s", file_name, cleaned)
             return cleaned
 
         except Exception as e:
-            print(f"  [LLM] LLM call failed for {file_name}: {e}. Using Tree-sitter results.")
+            logger.warning("LLM call failed for %s: %s — falling back to Tree-sitter results", file_name, e)
             return raw_endpoints
 
 llm_service = LLMService()

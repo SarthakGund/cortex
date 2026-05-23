@@ -1,8 +1,11 @@
+import logging
 import os
 from datetime import datetime
 from services.graph_service import graph_service
 from services.llm_service import llm_service
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 class DocumentationService:
     def __init__(self):
@@ -63,7 +66,7 @@ class DocumentationService:
 
     def generate_documentation(self) -> str:
         """Main method to generate and save documentation."""
-        print("[Docs] Generating system documentation...")
+        logger.info("Generating system documentation...")
         data = self._get_system_data()
         
         # Build System Overview using LLM
@@ -81,7 +84,7 @@ class DocumentationService:
                 response = llm_service.model.generate_content(system_summary_prompt)
                 system_overview = response.text.strip()
             except Exception as e:
-                print(f"[Docs] LLM Error: {e}")
+                logger.warning("LLM error generating docs: %s", e)
 
         # Load Template
         with open(self.template_path, "r") as f:
@@ -133,7 +136,7 @@ Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(final_doc)
             
-        print(f"[Docs] Documentation updated at {output_path}")
+        logger.info("Documentation updated at %s", output_path)
         return output_path
 
 def json_dumps_safe(data):

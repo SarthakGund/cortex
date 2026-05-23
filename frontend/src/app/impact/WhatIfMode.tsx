@@ -4,7 +4,7 @@ import { FlaskConical, Loader2, ChevronDown, AlertTriangle, GitMerge, Layers } f
 import type { WhatIfResult, SearchResult } from "./types";
 import { SeverityBadge, RiskBanner, CollapsibleSection, BreakingChangeRow, MigrationSteps, StatCard } from "./components";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 const SCENARIO_TYPES = [
     { value: "deprecate_endpoint", label: "Deprecate Endpoint", icon: "⚠️", color: "text-[var(--color-accent)]" },

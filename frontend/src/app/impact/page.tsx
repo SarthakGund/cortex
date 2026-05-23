@@ -11,7 +11,7 @@ import { BlastRadiusMode, ChainMode } from "./BlastChainModes";
 import { WhatIfMode } from "./WhatIfMode";
 import { SpecDiffMode } from "./SpecDiffMode";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 // ── Mode config ────────────────────────────────────────────────────────────
 
@@ -69,7 +69,7 @@ function ExportPanel({ authHeaders, target }: { authHeaders: Record<string, stri
     setExporting(fmt);
     try {
       const endpoint = fmt === "md" ? "/impact/report/markdown" : "/impact/report/json";
-      const r = await fetch(`${API}${endpoint}?target=${encodeURIComponent(target)}&depth=4`, { headers: authHeaders });
+      const r = await fetch(`${API}${endpoint}?target=${encodeURIComponent(target)}&depth=4`, { headers: authHeaders, credentials: "include" });
       if (r.ok) {
         const d = await r.json();
         const content = fmt === "md" ? d.markdown : JSON.stringify(d, null, 2);

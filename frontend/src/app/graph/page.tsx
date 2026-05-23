@@ -18,7 +18,7 @@ const GraphView = dynamic<GraphViewProps>(() => import('@/components/GraphView')
   ),
 })
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+import { API_BASE } from "@/lib/api"
 
 export default function GraphPage() {
   const { token } = useAuth()
@@ -43,8 +43,8 @@ export default function GraphPage() {
         : `${API_BASE}/graph/`
 
       const [graphRes, statsRes] = await Promise.all([
-        fetch(url, { headers: authHeaders }),
-        fetch(`${API_BASE}/graph/stats`, { headers: authHeaders }),
+        fetch(url, { headers: authHeaders, credentials: "include" }),
+        fetch(`${API_BASE}/graph/stats`, { headers: authHeaders, credentials: "include" }),
       ])
 
       if (!graphRes.ok) throw new Error(`Graph API returned ${graphRes.status}`)

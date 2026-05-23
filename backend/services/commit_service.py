@@ -1,28 +1,24 @@
-from core.database import SessionLocal
-from core.models import Commit
+import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
-import json
+
+from core.database import SessionLocal
+from core.models import Commit
+
+logger = logging.getLogger(__name__)
 
 # Try to import LLM service, but don't fail if it's not available
 try:
     from services.llm_service import llm_service
     LLM_AVAILABLE = True
 except Exception as e:
-    print(f"[CommitService] LLM service not available: {e}")
+    logger.warning("LLM service not available: %s", e)
     LLM_AVAILABLE = False
     llm_service = None
 
-class CommitService:
-    def __init__(self):
-        pass
 
+class CommitService:
     def summarize_commit(self, repo_url: str, commit_data: dict, service_name_override: str | None = None) -> dict:
-        """
-        Takes raw commit data from a webhook (message, modified files, etc.)
-        and generates a high-level technical summary using the LLM.
-        Stores in PostgreSQL database.
-        """
         commit_hash = commit_data.get("id", "unknown")
         commit_msg = commit_data.get("message", "No commit message")
         author_data = commit_data.get("author", {})
@@ -31,14 +27,12 @@ class CommitService:
         modified = commit_data.get("modified", [])
         removed = commit_data.get("removed", [])
         timestamp_str = commit_data.get("timestamp", datetime.now().isoformat())
-        
-        # Parse timestamp
+
         try:
             timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-        except:
+        except Exception:
             timestamp = datetime.now()
 
-        # Extract service name from repo URL (or override with repo_key)
         service_name = service_name_override or repo_url.rstrip("/").split("/")[-1].replace(".git", "")
 
         prompt = f"""
@@ -62,9 +56,8 @@ class CommitService:
                 response = llm_service.model.generate_content(prompt)
                 summary = response.text.strip()
             except Exception as e:
-                print(f"[CommitService] LLM Error: {e}")
-        
-        # Store in PostgreSQL
+                logger.warning("LLM error summarising commit %s: %s", commit_hash[:7], e)
+
         self._store_commit_db(
             commit_hash=commit_hash,
             repo_url=repo_url,
@@ -72,29 +65,27 @@ class CommitService:
             author=author,
             message=commit_msg,
             summary=summary,
-            timestamp=timestamp
+            timestamp=timestamp,
         )
-        
+
         return {
             "hash": commit_hash,
             "author": author,
             "summary": summary,
             "message": commit_msg,
             "timestamp": timestamp.isoformat(),
-            "service": service_name
+            "service": service_name,
         }
 
-    def _store_commit_db(self, commit_hash: str, repo_url: str, service_name: str, 
+    def _store_commit_db(self, commit_hash: str, repo_url: str, service_name: str,
                          author: str, message: str, summary: str, timestamp: datetime):
-        """Store commit in PostgreSQL database."""
         db = SessionLocal()
         try:
-            # Check if commit already exists
             existing = db.query(Commit).filter(Commit.hash == commit_hash).first()
             if existing:
-                print(f"[CommitService] Commit {commit_hash[:7]} already exists, skipping")
+                logger.debug("Commit %s already exists, skipping", commit_hash[:7])
                 return
-            
+
             commit = Commit(
                 hash=commit_hash,
                 repo_url=repo_url,
@@ -102,22 +93,21 @@ class CommitService:
                 author=author,
                 message=message,
                 summary=summary,
-                timestamp=timestamp
+                timestamp=timestamp,
             )
             db.add(commit)
             db.commit()
-            print(f"[CommitService] ✅ Stored commit {commit_hash[:7]} for {service_name}")
-        except IntegrityError as e:
+            logger.info("Stored commit %s for %s", commit_hash[:7], service_name)
+        except IntegrityError:
             db.rollback()
-            print(f"[CommitService] Commit {commit_hash[:7]} already exists (integrity error)")
+            logger.debug("Commit %s already exists (integrity error)", commit_hash[:7])
         except Exception as e:
             db.rollback()
-            print(f"[CommitService] Error storing commit: {e}")
+            logger.exception("Error storing commit %s", commit_hash[:7])
         finally:
             db.close()
 
     def get_recent_summaries(self, limit: int = 20, service_name: str | None = None):
-        """Retrieve recent commit summaries from PostgreSQL."""
         db = SessionLocal()
         try:
             query = db.query(Commit)
@@ -125,14 +115,13 @@ class CommitService:
                 query = query.filter(Commit.service_name == service_name)
             commits = query.order_by(Commit.timestamp.desc()).limit(limit).all()
             result = [commit.to_dict() for commit in commits]
-            print(f"[CommitService] Fetched {len(result)} commits from database")
+            logger.debug("Fetched %d commits from database", len(result))
             return result
         except Exception as e:
-            print(f"[CommitService] Error fetching commits: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("Error fetching commits")
             return []
         finally:
             db.close()
+
 
 commit_service = CommitService()

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -318,6 +318,7 @@ export default function ScaffoldPage() {
       const res = await fetch(`${API}/scaffold/design`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
+        credentials: "include",
         body: JSON.stringify({
           requirements,
           reference_service: referenceService.trim() || undefined,
@@ -347,6 +348,7 @@ export default function ScaffoldPage() {
       const res = await fetch(`${API}/scaffold/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
+        credentials: "include",
         body: JSON.stringify({ blueprint }),
       });
       if (!res.ok) {

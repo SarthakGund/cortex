@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -100,7 +100,7 @@ function GraphSnapshotsView() {
   const fetchSnapshots = async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/snapshots/`, { headers: authHeaders });
+      const r = await fetch(`${API}/snapshots/`, { headers: authHeaders, credentials: "include" });
       if (r.ok) setSnapshots(await r.json());
     } catch { /* ignore */ }
     setLoading(false);
@@ -112,6 +112,7 @@ function GraphSnapshotsView() {
       await fetch(`${API}/snapshots/capture`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
+        credentials: "include",
         body: JSON.stringify({ label: `Manual — ${new Date().toLocaleString()}` }),
       });
       setTimeout(fetchSnapshots, 1500);
@@ -125,7 +126,7 @@ function GraphSnapshotsView() {
     setMode("detail");
     setDetailLoading(true);
     try {
-      const r = await fetch(`${API}/snapshots/${id}`, { headers: authHeaders });
+      const r = await fetch(`${API}/snapshots/${id}`, { headers: authHeaders, credentials: "include" });
       if (r.ok) setDetail(await r.json());
     } catch { /* ignore */ }
     setDetailLoading(false);
@@ -137,13 +138,13 @@ function GraphSnapshotsView() {
     setDiffLoading(true);
     setDiff(null);
     try {
-      const r = await fetch(`${API}/snapshots/diff/${a}/${b}`, { headers: authHeaders });
+      const r = await fetch(`${API}/snapshots/diff/${a}/${b}`, { headers: authHeaders, credentials: "include" });
       if (r.ok) setDiff(await r.json());
     } catch { /* ignore */ }
     setDiffLoading(false);
   };
 
-  useEffect(() => { fetchSnapshots(); }, [token]);
+  useEffect(() => { fetchSnapshots(); }, []);
 
   // Group nodes by label for the detail view
   const nodesByLabel = detail

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Send,
   Database,
@@ -30,8 +30,9 @@ import {
 } from "lucide-react";
 import { FileTree, TreeNode } from "./components/FileTree";
 import { useAuth } from "./context/AuthContext";
+import LandingHero from "./components/LandingHero";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -299,7 +300,8 @@ function IngestTab() {
   const [clearing, setClearing] = useState(false);
   const [stats, setStats] = useState<VectorStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
-  const { token: githubToken, logout: handleGithubLogout } = useAuth();
+  const { user: githubUser, token: githubToken, logout: handleGithubLogout } = useAuth();
+  const githubConnected = !!(githubUser || githubToken);
   const authHeaders = useMemo(() => {
     if (!githubToken) return {};
     return { Authorization: `Bearer ${githubToken}` };
@@ -314,7 +316,7 @@ function IngestTab() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const r = await fetch(`${API}/rag/stats`, { headers: authHeaders });
+      const r = await fetch(`${API}/rag/stats`, { headers: authHeaders, credentials: "include" });
       if (r.ok) setStats(await r.json());
     } catch {
       /* ignore */
@@ -339,6 +341,7 @@ function IngestTab() {
         const addRepo = await fetch(`${API}/repos`, {
           method: "POST",
           headers: { "Content-Type": "application/json", ...authHeaders },
+          credentials: "include",
           body: JSON.stringify({ repo_url: repoUrl.trim() }),
         });
         if (addRepo.ok) {
@@ -348,6 +351,7 @@ function IngestTab() {
             await fetch(`${API}/repos/select`, {
               method: "POST",
               headers: { "Content-Type": "application/json", ...authHeaders },
+              credentials: "include",
               body: JSON.stringify({ repo_id: repoId }),
             });
             if (typeof window !== "undefined") {
@@ -360,6 +364,7 @@ function IngestTab() {
       const r = await fetch(`${API}/ingest/github`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
+        credentials: "include",
         body: JSON.stringify({ repo_url: repoUrl, github_token: githubToken, repo_id: repoId ?? undefined }),
         // body: JSON.stringify({ repo_url: repoUrl, incremental }),
       });
@@ -386,6 +391,7 @@ function IngestTab() {
       const r = await fetch(`${API}/ingest/multi`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
+        credentials: "include",
         body: JSON.stringify({ repos: urls.map((u) => ({ repo_url: u, incremental })) }),
       });
       const d = await r.json();
@@ -408,7 +414,7 @@ function IngestTab() {
     setClearing(true);
     setStatus({ type: "info", text: "Clearing vector store…" });
     try {
-      const r = await fetch(`${API}/rag/clear`, { method: "DELETE", headers: authHeaders });
+      const r = await fetch(`${API}/rag/clear`, { method: "DELETE", headers: authHeaders, credentials: "include" });
       const d = await r.json();
       setStatus({ type: d.status === "success" || d.status === "ok" ? "success" : "error", text: d.message });
       await fetchStats();
@@ -519,17 +525,17 @@ function IngestTab() {
     {/* GitHub Connection Status */}
     <div className="swiss-panel flex items-center justify-between mb-5 p-3">
       <div className="flex items-center gap-3">
-        <Code2 size={16} className={githubToken ? "text-emerald-400" : "text-[var(--color-text-muted)]"} />
+        <Code2 size={16} className={githubConnected ? "text-emerald-400" : "text-[var(--color-text-muted)]"} />
         <div>
           <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-            {githubToken ? "GitHub Connected" : "GitHub OAuth Not Connected"}
+            {githubConnected ? "GitHub Connected" : "GitHub OAuth Not Connected"}
           </p>
           <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
             Connect to access private repos &amp; attach webhooks.
           </p>
         </div>
       </div>
-      {githubToken ? (
+      {githubConnected ? (
         <button
           type="button"
           onClick={handleGithubLogout}
@@ -818,6 +824,7 @@ function ChatTab() {
       const r = await fetch(`${API}/rag/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
+        credentials: "include",
         body: JSON.stringify({ question: q, top_k: topK }),
       });
 
@@ -994,11 +1001,11 @@ function CommitsTab() {
   const fetchCommits = useCallback(async () => {
     setLoading(true);
     try {
-      console.log(`[CommitsTab] Fetching commits from: ${API}/webhook/commits`);
+      if (process.env.NODE_ENV === "development") console.log(`[CommitsTab] Fetching commits from: ${API}/webhook/commits`);
       const r = await fetch(`${API}/webhook/commits`, { headers: authHeaders });
       if (r.ok) {
         const data = await r.json();
-        console.log(`[CommitsTab] Received ${Array.isArray(data) ? data.length : 0} commits:`, data);
+        if (process.env.NODE_ENV === "development") console.log(`[CommitsTab] Received ${Array.isArray(data) ? data.length : 0} commits:`, data);
         setCommits(data);
       } else {
         console.error(`[CommitsTab] Failed to fetch commits. Status: ${r.status}`);
@@ -1132,7 +1139,7 @@ function ExplorerTab() {
     try {
       const r = await fetch(
         `${API}/github/tree?repo_url=${encodeURIComponent(repoUrl)}&branch=${encodeURIComponent(branch)}`,
-        { headers: authHeaders }
+        { headers: authHeaders, credentials: "include" }
       );
       if (!r.ok) {
         const d = await r.json();
@@ -1155,7 +1162,7 @@ function ExplorerTab() {
     try {
       const r = await fetch(
         `${API}/github/file?repo_url=${encodeURIComponent(repoUrl)}&file_path=${encodeURIComponent(node.path)}&branch=${encodeURIComponent(branch)}`,
-        { headers: authHeaders }
+        { headers: authHeaders, credentials: "include" }
       );
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
@@ -1268,100 +1275,38 @@ type Tab = "chat" | "ingest" | "commits" | "explorer";
 {/* type Tab = "chat" | "ingest" | "explorer"; */}
 
 export default function Home() {
-  const router = useRouter();
+  const { user, token, loading } = useAuth();
+  const isAuthed = !!(user || token);
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("chat");
+  const [hasExplicitTab, setHasExplicitTab] = useState(false);
 
   const resolveTab = useCallback((value: string | null): Tab => {
     return value === "ingest" || value === "commits" || value === "explorer" ? value : "chat";
   }, []);
 
   useEffect(() => {
-    setTab(resolveTab(searchParams.get("tab")));
+    const rawTab = searchParams.get("tab");
+    setTab(resolveTab(rawTab));
+    setHasExplicitTab(rawTab !== null);
   }, [searchParams, resolveTab]);
 
-  const handleStartChat = () => {
-    router.push("/?tab=chat");
-    setTimeout(() => {
-      if (typeof document !== "undefined") {
-        const el = document.getElementById("chat-input");
-        if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
-          el.focus();
-        }
-      }
-    }, 50);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 size={28} className="animate-spin opacity-30 text-[var(--color-foreground)]" />
+      </div>
+    );
+  }
 
-  const handleGoToIngest = () => {
-    router.push("/?tab=ingest");
-  };
+  if (!isAuthed) {
+    return <LandingHero />;
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
-        {/* Hero (shown right after auth, default on chat tab) */}
-        {tab === "chat" && (
-          <section className="mb-6 fade-in-up">
-            <div className="relative overflow-hidden swiss-card px-5 py-4 sm:px-8 sm:py-6">
-              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <div className="inline-flex items-center gap-2 swiss-chip px-3 py-1 mb-3">
-                    <Sparkles size={11} className="text-[var(--color-primary)]" />
-                    <span className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
-                      GitHub-native Knowledge Assistant
-                    </span>
-                  </div>
-
-                  <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-foreground)] mb-1">
-                    Welcome to your
-                    {" "}
-                    <span className="text-[var(--color-primary)]">
-                      codebase co‑pilot
-                    </span>
-                  </h2>
-                  <p className="text-sm text-[var(--color-muted-foreground)] max-w-xl">
-                    Ingest GitHub repos into a Neo4j knowledge graph, sync them into a vector store,
-                    and ask multi‑hop questions about architecture, dependencies, and impact.
-                  </p>
-
-                  <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                    <button
-                      onClick={handleGoToIngest}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold swiss-button"
-                    >
-                      <Database size={14} />
-                      Ingest a repo
-                    </button>
-                    <button
-                      onClick={handleStartChat}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold swiss-button-ghost"
-                    >
-                      <MessageSquare size={14} />
-                      Ask a question
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-1 gap-2 text-xs min-w-[180px]">
-                  {/* <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-0.5">
-                      Stack
-                    </p>
-                    <p className="text-[11px] text-[var(--color-text-secondary)]">
-                      Neo4j · ChromaDB · Gemini 2.0
-                    </p> */}
-                  {/* </div> */}
-                  <div className="swiss-panel px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-[var(--color-muted-foreground)] mb-0.5">
-                      Best for
-                    </p>
-                    <p className="text-[11px] text-[var(--color-foreground)]">
-                      Impact analysis, dependency maps, architecture Q&A
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
+        {/* Full landing hero when no tab is explicitly selected */}
+        {!hasExplicitTab && <LandingHero authenticated />}
 
         {tab === "ingest" && (
           <div className="mb-6 fade-in-up">
@@ -1377,7 +1322,7 @@ export default function Home() {
         {/* Tab content */}
         <div className="fade-in-up">
           {/* {tab === "chat" ? <ChatTab /> : tab === "ingest" ? <IngestTab /> : tab === "explorer" ? <ExplorerTab /> : <CommitsTab />} */}
-          {tab === "chat" && <ChatTab />}
+          {tab === "chat" && hasExplicitTab && <ChatTab />}
           {tab === "ingest" && <IngestTab />}
           {tab === "explorer" && <ExplorerTab />}
           {tab === "commits" && <CommitsTab />}

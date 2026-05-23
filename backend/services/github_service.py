@@ -1,6 +1,9 @@
 import base64
+import logging
 import httpx
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 SKIP_EXTENSIONS = {
@@ -118,7 +121,7 @@ class GitHubService:
                 code = self.get_file_content(repo_url, path, branch)
                 yield path, ext, code
             except Exception as exc:
-                print(f"  [WARN] Could not fetch {path}: {exc}")
+                logger.warning("Could not fetch %s: %s", path, exc)
 
 
 github_service = GitHubService()
@@ -140,7 +143,7 @@ class GitHubWebhookService:
         token_to_use = github_token or self.token
 
         if not token_to_use or not hook_url:
-            print("[GitHubService] ⚠️ Skipping webhook creation: GitHub token or WEBHOOK_URL not set.")
+            logger.warning("Skipping webhook creation: GitHub token or WEBHOOK_URL not set.")
             return {"status": "skipped", "message": "Configuration missing"}
 
         # Extract owner and repo from URL
@@ -164,10 +167,10 @@ class GitHubWebhookService:
                 existing_hooks = get_resp.json()
                 for hook in existing_hooks:
                     if hook["config"].get("url") == self.base_webhook_url:
-                        print(f"[GitHubService] ✅ Webhook already exists for {owner}/{repo}")
+                        logger.info("Webhook already exists for %s/%s", owner, repo)
                         return {"status": "exists", "message": "Webhook already exists"}
         except Exception as e:
-            print(f"[GitHubService] ⚠️ Error checking existing hooks: {e}")
+            logger.warning("Error checking existing hooks: %s", e)
 
         # Create new webhook
         hook_data = {
@@ -184,14 +187,14 @@ class GitHubWebhookService:
         try:
             resp = requests.post(api_url, headers=headers, json=hook_data)
             if resp.status_code == 201:
-                print(f"[GitHubService] 🚀 Successfully created webhook for {owner}/{repo}")
+                logger.info("Successfully created webhook for %s/%s", owner, repo)
                 return {"status": "success", "message": "Webhook created"}
             else:
                 error_msg = resp.json().get("message", "Unknown error")
-                print(f"[GitHubService] ❌ Failed to create webhook: {error_msg}")
+                logger.error("Failed to create webhook: %s", error_msg)
                 return {"status": "error", "message": error_msg}
         except Exception as e:
-            print(f"[GitHubService] ❌ Error creating webhook: {e}")
+            logger.exception("Error creating webhook")
             return {"status": "error", "message": str(e)}
 
 github_webhook_service = GitHubWebhookService()

@@ -14,11 +14,14 @@ This allows "time-travel" replays of the exact graph structure at any commit.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from typing import Optional
 
 from core.database import SessionLocal
 from core.models import GraphSnapshot
+
+logger = logging.getLogger(__name__)
 
 
 class SnapshotService:
@@ -48,13 +51,13 @@ class SnapshotService:
         """
         driver = self._get_neo4j_driver()
         if driver is None:
-            print("[SnapshotService] Neo4j not available — skipping snapshot")
+            logger.warning("Neo4j not available — skipping snapshot")
             return None
 
         try:
             nodes, edges = self._fetch_graph(driver)
         except Exception as e:
-            print(f"[SnapshotService] Failed to fetch graph from Neo4j: {e}")
+            logger.exception("Failed to fetch graph from Neo4j")
             return None
 
         snap_label = label or (
@@ -79,12 +82,11 @@ class SnapshotService:
             db.add(snap)
             db.commit()
             db.refresh(snap)
-            print(f"[SnapshotService] ✅ Saved snapshot #{snap.id}: {snap_label} "
-                  f"({len(nodes)} nodes, {len(edges)} edges)")
+            logger.info("Saved snapshot #%s: %s (%d nodes, %d edges)", snap.id, snap_label, len(nodes), len(edges))
             return snap.to_dict()
         except Exception as e:
             db.rollback()
-            print(f"[SnapshotService] Error saving snapshot: {e}")
+            logger.exception("Error saving snapshot")
             return None
         finally:
             db.close()
@@ -159,7 +161,7 @@ class SnapshotService:
             snaps = q.order_by(GraphSnapshot.taken_at.desc()).limit(limit).all()
             return [s.to_dict() for s in snaps]
         except Exception as e:
-            print(f"[SnapshotService] Error listing: {e}")
+            logger.exception("Error listing snapshots")
             return []
         finally:
             db.close()
@@ -174,7 +176,7 @@ class SnapshotService:
             snap = q.first()
             return snap.to_full_dict() if snap else None
         except Exception as e:
-            print(f"[SnapshotService] Error fetching #{snapshot_id}: {e}")
+            logger.exception("Error fetching snapshot #%s", snapshot_id)
             return None
         finally:
             db.close()

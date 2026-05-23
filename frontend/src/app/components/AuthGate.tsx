@@ -1,18 +1,13 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Network, Github, Sparkles, Database, GitBranch, Loader2 } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_BASE as API } from "@/lib/api";
 
 export default function AuthGate({ children }: { children: ReactNode }) {
-  const { token, loading } = useAuth();
-
-  // After auth succeeds, always show the top of the home page
-  useEffect(() => {
-    
-  }, [token]);
+  const { user, token, loading } = useAuth();
 
   if (loading) {
     return (
@@ -22,7 +17,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!token) {
+  if (!user && !token) {
     return <LoginScreen />;
   }
 

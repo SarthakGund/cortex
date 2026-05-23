@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 from typing import Any, Optional
@@ -24,6 +25,8 @@ from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunct
 from core.config import settings
 from services.graph_service import graph_service
 from services.llm_service import llm_service
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -96,7 +99,7 @@ class RAGService:
         # --- LLM ---
         self._llm_enabled = llm_service.enabled
         if not self._llm_enabled:
-            print("[RAG] LLM not configured – answers will be context-only.")
+            logger.warning("[RAG] LLM not configured — answers will be context-only.")
 
     def _count_documents(self, where: dict | None = None) -> int:
         """Count documents, with fallback for Chroma versions lacking count(where=...)."""
@@ -225,11 +228,11 @@ class RAGService:
                 deduped_ids.append(doc_id)
                 deduped_meta.append(meta)
             else:
-                print(f"[RAG] ⚠️  Skipping duplicate ID: {doc_id}")
+                logger.debug("Skipping duplicate ChromaDB ID: %s", doc_id)
 
         duplicates_dropped = len(documents) - len(deduped_docs)
         if duplicates_dropped:
-            print(f"[RAG] Dropped {duplicates_dropped} duplicate IDs before upsert.")
+            logger.debug("Dropped %d duplicate IDs before upsert", duplicates_dropped)
 
         # ---- Upsert in batches of 500 (ChromaDB limit) ----
         batch_size = 500
@@ -247,7 +250,7 @@ class RAGService:
             f"({total_upserted} unique documents) into ChromaDB."
             + (f" ({duplicates_dropped} duplicates skipped.)" if duplicates_dropped else "")
         )
-        print(f"[RAG] {msg}")
+        logger.info(msg)
         return {"status": "success", "message": msg, "document_count": total_upserted}
 
     # ------------------------------------------------------------------
@@ -479,7 +482,7 @@ Assistant:"""
             try:
                 graph_context = self._execute_cypher(cypher)
             except Exception as e:
-                print(f"[RAG] Cypher execution failed: {e}")
+                logger.warning("Cypher execution failed: %s", e)
                 graph_context = ""
 
         # Step 2: Also do vector retrieval for supplementary context
@@ -596,7 +599,7 @@ Cypher:"""
             entity = ""
             return raw, entity
         except Exception as e:
-            print(f"[RAG] Cypher generation failed: {e}")
+            logger.warning("Cypher generation failed: %s", e)
             return "", ""
 
     def _execute_cypher(self, cypher: str) -> str:
@@ -656,7 +659,7 @@ Cypher:"""
             embedding_function=self._ef,
             metadata={"hnsw:space": "cosine"},
         )
-        print(f"[RAG] Cleared {count_before} documents from ChromaDB collection '{COLLECTION_NAME}'.")
+        logger.info("Cleared %d documents from ChromaDB collection '%s'", count_before, COLLECTION_NAME)
         return {
             "status": "success",
             "message": f"Deleted all {count_before} documents. Collection is now empty.",
