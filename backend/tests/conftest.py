@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures for the SPIT backend test suite.
+Shared pytest fixtures for the Cortex backend test suite.
 
 Tests use FastAPI's TestClient with all external services mocked so that
 no real database, Neo4j, Qdrant, Redis, or GitHub API calls are made.
@@ -35,6 +35,18 @@ def _patch_settings():
         mock_settings.GITHUB_TOKEN = None
         mock_settings.github_token = None
         yield mock_settings
+
+
+# ---------------------------------------------------------------------------
+# Clear the in-memory rate-limiter bucket before every test so accumulated
+# hits from previous tests don't trigger 429 on "expensive" paths.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limit():
+    import main as _main
+    _main._ip_request_log.clear()
+    yield
 
 
 # ---------------------------------------------------------------------------
@@ -77,5 +89,8 @@ def authed_client(client):
     with patch(
         "services.user_repo_service.UserRepoService.require_user",
         return_value=MOCK_DB_USER,
+    ), patch(
+        "services.user_repo_service.UserRepoService._get_token",
+        return_value="gho_mock_token",
     ):
         yield client

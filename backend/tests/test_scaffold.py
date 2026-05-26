@@ -18,7 +18,7 @@ SAMPLE_BLUEPRINT = {
 
 def test_design_happy_path(authed_client):
     with patch(
-        "services.scaffold_service.design_architecture",
+        "api.scaffold.design_architecture",
         return_value=SAMPLE_BLUEPRINT,
     ):
         resp = authed_client.post(
@@ -54,7 +54,7 @@ def test_generate_happy_path(authed_client):
     mock_zip = b"PK\x03\x04"  # minimal zip magic bytes
 
     with patch(
-        "services.scaffold_service.generate_scaffold",
+        "api.scaffold.generate_scaffold",
         return_value=(mock_file_tree, mock_zip),
     ), patch("api.scaffold._save_job"):
         resp = authed_client.post("/scaffold/generate", json={"blueprint": SAMPLE_BLUEPRINT})
@@ -67,7 +67,7 @@ def test_generate_happy_path(authed_client):
 
 def test_generate_returns_422_for_unsupported_language(authed_client):
     with patch(
-        "services.scaffold_service.generate_scaffold",
+        "api.scaffold.generate_scaffold",
         side_effect=ValueError("Unsupported language/framework combination: cobol/legacy"),
     ):
         resp = authed_client.post("/scaffold/generate", json={"blueprint": SAMPLE_BLUEPRINT})

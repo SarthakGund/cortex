@@ -12,21 +12,19 @@ MOCK_ACTIVE_REPO.repo_key = "testuser:org/repo"
 # ---------------------------------------------------------------------------
 
 def test_whatif_happy_path(authed_client):
-    mock_result = {"impacted_services": ["auth", "api-gateway"], "risk_level": "medium"}
+    mock_impact = MagicMock()
+    mock_impact.to_dict.return_value = {"impacted_services": ["auth"], "risk_level": "medium"}
     with patch(
         "services.user_repo_service.UserRepoService.get_active_repo",
         return_value=MOCK_ACTIVE_REPO,
     ), patch(
-        "api.impact.graph_service",
-    ), patch(
-        "api.impact.llm_service.analyze_impact",
-        return_value=mock_result,
+        "services.whatif_service.run_whatif_scenario",
+        return_value=mock_impact,
     ):
         resp = authed_client.post(
             "/impact/whatif",
-            json={"change_description": "Remove /users endpoint"},
+            json={"type": "deprecate_endpoint", "target": "POST /users"},
         )
-    # 200 or 500 depending on mock depth — main check is auth passes
     assert resp.status_code != 401
 
 
@@ -35,12 +33,12 @@ def test_whatif_requires_auth(client):
         "services.user_repo_service.UserRepoService.require_user",
         side_effect=Exception("not authed"),
     ):
-        resp = client.post("/impact/whatif", json={"change_description": "anything"})
+        resp = client.post("/impact/whatif", json={"type": "deprecate_endpoint", "target": "POST /users"})
     assert resp.status_code in (401, 422, 500)
 
 
 # ---------------------------------------------------------------------------
-# GET /impact/blast-chain
+# GET /impact/blast-radius  (was incorrectly /impact/blast-chain)
 # ---------------------------------------------------------------------------
 
 def test_blast_chain_requires_auth(client):
@@ -48,12 +46,17 @@ def test_blast_chain_requires_auth(client):
         "services.user_repo_service.UserRepoService.require_user",
         side_effect=Exception("not authed"),
     ):
-        resp = client.get("/impact/blast-chain?service=auth")
+        resp = client.get("/impact/blast-radius?node=auth")
     assert resp.status_code in (401, 422, 500)
 
 
 def test_blast_chain_happy_path(authed_client):
-    with patch("api.impact.graph_service") as mock_graph:
-        mock_graph.get_blast_chain = MagicMock(return_value={"chain": []})
-        resp = authed_client.get("/impact/blast-chain?service=auth")
-    assert resp.status_code in (200, 500)  # 500 if graph mock is incomplete
+    with patch(
+        "services.user_repo_service.UserRepoService.get_active_repo",
+        return_value=MOCK_ACTIVE_REPO,
+    ), patch(
+        "services.impact_service.blast_radius",
+        return_value={"upstream": {"count": 0}, "downstream": {"count": 0}, "affected_services": []},
+    ):
+        resp = authed_client.get("/impact/blast-radius?node=auth")
+    assert resp.status_code in (200, 500)

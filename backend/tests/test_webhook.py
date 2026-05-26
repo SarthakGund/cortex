@@ -50,7 +50,7 @@ def test_webhook_accepts_valid_signature(client):
     body = json.dumps(SAMPLE_PAYLOAD).encode()
     sig = _sign(body, WEBHOOK_SECRET)
 
-    with patch("core.database.SessionLocal") as mock_sl:
+    with patch("api.webhook.SessionLocal") as mock_sl:
         mock_db = MagicMock()
         mock_sl.return_value = mock_db
         mock_db.query.return_value.filter.return_value.all.return_value = []

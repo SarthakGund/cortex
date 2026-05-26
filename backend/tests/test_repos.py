@@ -24,7 +24,7 @@ def test_list_repos_happy_path(authed_client):
     ):
         resp = authed_client.get("/repos/")
     assert resp.status_code == 200
-    assert isinstance(resp.json(), list)
+    assert isinstance(resp.json()["repos"], list)
 
 
 def test_list_repos_requires_auth(client):

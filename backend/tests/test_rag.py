@@ -5,7 +5,8 @@ from unittest.mock import patch, MagicMock
 
 MOCK_RAG_RESPONSE = {
     "answer": "The service handles authentication.",
-    "sources": [{"file": "auth.py", "score": 0.95}],
+    "sources": [{"text": "auth code snippet", "metadata": {"file": "auth.py"}, "score": 0.95}],
+    "context_used": 1,
 }
 
 MOCK_ACTIVE_REPO = MagicMock()
@@ -21,7 +22,7 @@ def test_rag_ask_happy_path(authed_client):
         "services.user_repo_service.UserRepoService.get_active_repo",
         return_value=MOCK_ACTIVE_REPO,
     ), patch(
-        "services.rag_service.rag_service.query",
+        "services.rag_service.rag_service.multi_hop_query",
         return_value=MOCK_RAG_RESPONSE,
     ):
         resp = authed_client.post("/rag/ask", json={"question": "What does auth do?"})
