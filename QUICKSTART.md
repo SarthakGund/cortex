@@ -42,7 +42,7 @@ docker-compose up -d
 
 ## Database
 
-- Using SQLite: `backend/spit_commits.db`
+- Using SQLite: `backend/cortex_commits.db`
 - Automatically created on first run
 - No PostgreSQL needed
 

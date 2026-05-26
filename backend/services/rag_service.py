@@ -339,7 +339,7 @@ class RAGService:
                 "context_used": context_used,
             }
 
-        prompt = f"""You are SPIT — an expert software architecture assistant backed by a living knowledge graph.
+        prompt = f"""You are Cortex — an expert software architecture assistant backed by a living knowledge graph.
 
 The knowledge graph contains the following node types:
 - Service: microservices or applications
@@ -427,7 +427,7 @@ Answer:"""
             history_lines.append(f"{role}: {m['content']}")
         history_str = "\n".join(history_lines)
 
-        prompt = f"""You are SPIT — an expert software architecture assistant backed by a living knowledge graph.
+        prompt = f"""You are Cortex — an expert software architecture assistant backed by a living knowledge graph.
 
 Relevant knowledge graph context:
 {context}
@@ -501,7 +501,7 @@ Assistant:"""
             combined_context += f"<GraphTraversal>\n{graph_context}\n</GraphTraversal>\n\n"
         combined_context += vector_context
 
-        prompt = f"""You are SPIT — an expert software architecture assistant backed by a living knowledge graph.
+        prompt = f"""You are Cortex — an expert software architecture assistant backed by a living knowledge graph.
 
 You have TWO sources of context:
 1. **Graph Traversal** — direct Cypher query results showing exact relationships and dependencies from Neo4j.

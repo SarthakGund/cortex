@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install dependencies first (layer cache)
 COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application code
 COPY . .

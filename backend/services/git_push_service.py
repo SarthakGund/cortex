@@ -29,7 +29,7 @@ class GitPushService:
                 "Authorization": f"token {token}",
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2022-11-28",
-                "User-Agent": "SPIT-Health-Scanner/1.0",
+                "User-Agent": "Cortex-Health-Scanner/1.0",
             },
         )
         try:
@@ -72,7 +72,7 @@ class GitPushService:
             return {"success": False, "stdout": "", "stderr": "Clone directory not found."}
 
         commit_msg = message or (
-            f"chore: apply SPIT health fixes "
+            f"chore: apply Cortex health fixes "
             f"[{datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC]"
         )
 

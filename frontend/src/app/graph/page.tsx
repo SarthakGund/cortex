@@ -172,7 +172,7 @@ export default function GraphPage() {
         <span>
           {nodes.length} nodes · {edges.length} edges
         </span>
-        <span>SPIT · Living Knowledge Graph</span>
+        <span>Cortex · Living Knowledge Graph</span>
       </footer>
     </div>
   )

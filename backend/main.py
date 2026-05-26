@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="SPIT - Intelligent Architecture & Knowledge Platform",
+    title="Cortex - Intelligent Architecture & Knowledge Platform",
     description="API for the Living Knowledge Graph and Automated Staff Engineer",
     version="2.0.0",
 )
@@ -156,4 +156,4 @@ app.include_router(repos.router)
 
 @app.get("/")
 async def root():
-    return {"message": "SPIT API online. Living Knowledge Graph is active."}
+    return {"message": "Cortex API online. Living Knowledge Graph is active."}

@@ -1,4 +1,4 @@
-# Deployment Readiness Audit — SPIT Cortex
+# Deployment Readiness Audit — Cortex
 
 > **Status:** Pre-deployment review. All items below must be resolved before the app goes live.
 > PostgreSQL will be hosted on AWS RDS — local SQLite is dev-only and not a blocker.

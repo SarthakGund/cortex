@@ -277,7 +277,7 @@ def impact_summary(
 
     context = "\n".join(context_parts)
 
-    prompt = f"""You are SPIT — a software architecture impact analyzer.
+    prompt = f"""You are Cortex — a software architecture impact analyzer.
 
 Analyze the risk and impact of modifying this component in a software system:
 

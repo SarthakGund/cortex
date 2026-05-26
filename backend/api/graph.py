@@ -73,7 +73,7 @@ def get_full_graph(request: Request, limit: int = QParam(default=500, le=2000)):
             if nid not in seen_nodes:
                 seen_nodes[nid] = {
                     "id":   nid,
-                    "type": "spit",
+                    "type": "cortex",
                     "data": {
                         "label":  _node_label(n),
                         "nodeType": list(n.labels)[0] if n.labels else "Unknown",
@@ -88,7 +88,7 @@ def get_full_graph(request: Request, limit: int = QParam(default=500, le=2000)):
             if mid not in seen_nodes:
                 seen_nodes[mid] = {
                     "id":   mid,
-                    "type": "spit",
+                    "type": "cortex",
                     "data": {
                         "label":  _node_label(m),
                         "nodeType": list(m.labels)[0] if m.labels else "Unknown",
@@ -145,7 +145,7 @@ def get_service_subgraph(request: Request, service_name: str):
                 if nid not in seen_nodes:
                     seen_nodes[nid] = {
                         "id":   nid,
-                        "type": "spit",
+                        "type": "cortex",
                         "data": {
                             "label":  _node_label(node),
                             "nodeType": list(node.labels)[0] if node.labels else "Unknown",

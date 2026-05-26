@@ -1,108 +1,186 @@
-# Project Specification: Intelligent Architecture & Knowledge Platform
+# Cortex — Intelligent Architecture & Knowledge Platform
 
-## 1. Core Objectives & Alignment
-The purpose of this project is to design and build an intelligent, agent-driven platform that acts as a living knowledge graph, documentation system, and architecture assistant for software projects. It functions as an **Automated Staff Engineer** and a **Living Documentation** platform that actively participates in the software development lifecycle (SDLC) by reading code, enforcing standards, writing boilerplate, and fixing its own bugs.
+**Cortex** is an AI-powered "Automated Staff Engineer" that ingests your GitHub repositories, builds a living knowledge graph of your codebase, and lets you ask questions, simulate breaking changes, and scaffold new services — all in one platform.
 
----
-
-## 2. Key Features & Breakdown
-
-### 1. The Core Engine: A Living Knowledge Graph
-A dynamic engine that constantly reads and maps out the software ecosystem.
-*   **Continuous Ingestion:** Automatically parses codebases, OpenAPI specs, database schemas, incident reports, and design documents.
-*   **Dependency Mapping:** Links artifacts to form a "Living Knowledge Graph" (e.g., Service A calls Service B's API, which writes to Database C).
-*   **System Health Dashboard:** A UI that visualizes this graph and highlights "dead zones" where documentation is missing, outdated, or contradicts the code.
-
-### 2. The Architect: Autonomous Design & Scaffolding
-Takes natural language prompts and acts as an architect and coder.
-*   **Decision Making:** Chooses tech stacks, databases, and communication protocols (REST, gRPC) and justifies the choices.
-*   **Auto-Scaffolding:** Generates boilerplate code for microservices and deployment infrastructure (Dockerfiles, Kubernetes manifests, API Gateway configs).
-
-### 3. The Analyst: Impact Prediction & Q&A
-The ultimate source of truth for engineering queries.
-*   **Intent-First Q&A:** A chat interface providing exact file paths, lines of code, and specific diagrams from internal repos instead of generic answers.
-*   **"What-If" Analyzer:** Uses the knowledge graph to predict the blast radius of proposed changes (e.g., identifying downstream breaks if a database column type changes).
-
-### 4. The Enforcer: CI/CD Guardrails & Auto-Documentation
-Integrates into the developer workflow to enforce standards.
-*   **Auto-Refactoring Docs:** Automatically rewrites API documentation, service descriptions, and Architectural Decision Records (ADRs) as code changes.
-*   **"No Docs, No Merge" CI Checks:** Acts as an automated PR reviewer, blocking merges if new code lacks corresponding architecture docs.
-
-### 5. The Mentor: Contextual Onboarding
-Accelerates new hire ramp-up time.
-*   **Role-Based Paths:** Auto-generates curriculums of internal docs, key repositories, and past decisions based on the user's role (Frontend, Backend, SRE).
-*   **Starter Tasks:** Assigns relevant, low-risk starter tasks tied to the knowledge graph for hands-on learning.
-
-### 6. The "Time Machine": Temporal Architecture
-Visualizes architecture evolution over time.
-*   **Historical Timeline:** A UI slider to scrub back in time and view past architectural states.
-*   **Incident Replay & Future Modeling:** Visually replays past server outages to show failure cascades and models hypothetical future states based on proposed refactors.
-
-### 7. The Patcher: Autonomous Self-Healing
-Actively resolves detected issues.
-*   **Auto-Remediation:** Writes code or documentation to fix fragile patterns (e.g., missing retry policies) or missing ADRs.
-*   **Autonomous PR Generation:** Automatically opens Pull Requests with fixes, explaining the rationale and linking back to the knowledge graph node.
+[![CI](https://github.com/SarthakGund/cortex/actions/workflows/ci.yml/badge.svg)](https://github.com/SarthakGund/cortex/actions/workflows/ci.yml)
 
 ---
 
-## 3. Required Items (Deliverables)
+## What it does
 
-### Data & Storage Layer
-*   **Graph Database:** (e.g., Neo4j, Amazon Neptune) To store the Knowledge Graph (nodes = services/APIs; edges = dependencies).
-*   **Vector Database:** (e.g., Pinecone, Weaviate, Qdrant) To store embeddings for semantic search and Q&A.
-*   **Time-Series/Versioning Store:** To store historical snapshots of the graph.
-
-### Ingestion & Integration Engine
-*   **VCS Integration App:** GitHub/GitLab App to listen to webhooks (PRs, commits).
-*   **Code & AST Parsers:** Extractors for various languages (Python, TS, Go) to map functions and dependencies.
-*   **Spec Parsers:** Engines to ingest OpenAPI, GraphQL, and database schemas.
-
-### AI & Agentic Layer
-*   **LLM Orchestrator:** (e.g., LangChain, LlamaIndex) To route user intents to sub-agents.
-*   **Scaffolding Agent:** Generates boilerplate and infrastructure code.
-*   **Self-Healing Agent:** Scans for anti-patterns and generates code patches.
-*   **Impact Analysis Engine:** Graph-traversal algorithm + LLM reasoning to predict change blast radiuses.
-
-### Frontend UI/UX
-*   **System Health Dashboard:** Visualizes the graph and documentation health.
-*   **Omnichannel Chat Interface:** Web UI / Chat bot for Q&A and scaffolding.
-*   **Temporal Slider:** UI control for the "Time Machine" feature.
-*   **Onboarding Portal:** Role-based learning paths and task dashboards.
-
-### CI/CD & Infrastructure
-*   **Automated PR Reviewer:** CI pipeline script enforcing "No Docs, No Merge".
-*   **Deployment Infrastructure:** Cloud hosting setup (AWS/GCP/Azure).
+| Capability | Description |
+|---|---|
+| **Living Knowledge Graph** | Parses repos into a Neo4j graph of services, functions, endpoints, and schemas with their relationships |
+| **RAG Q&A** | Ask natural language questions about your codebase — answers are grounded in your actual code graph |
+| **Impact Analysis** | Compute blast radius, find dependency chains, and get LLM-powered risk assessments before making changes |
+| **What-If Simulator** | Simulate deprecating an endpoint, changing a field type, removing a schema — before touching production |
+| **OpenAPI Spec Diffing** | Upload two spec versions to detect breaking changes and see which services are affected |
+| **Architecture Scaffolding** | Describe a system in plain English → architecture blueprint → download a ready-to-run project zip |
+| **GitHub Integration** | OAuth login, per-user repo isolation, webhook-driven auto-ingestion on push |
 
 ---
 
-## 4. System Flow Plan
+## Tech stack
 
-### Phase 1: Continuous Ingestion & Graph Building (Background)
-1. **Trigger:** Code pushed to main branch or spec updated.
-2. **Ingestion:** Webhook listener catches the event.
-3. **Parsing:** Code/AST and Spec Parsers analyze changes.
-4. **Graph Update:** Graph DB is updated with new nodes and edges.
-5. **Vectorization:** Code/docs embedded into Vector DB.
-6. **Snapshot:** Current graph state saved with a timestamp.
+**Backend** — Python 3.12, FastAPI, [uv](https://github.com/astral-sh/uv)
 
-### Phase 2: Developer Day-to-Day Interaction (Active Use)
-*   **Q&A:** Developer asks a question -> LLM queries Vector DB -> Cross-references Graph DB -> Returns precise answer with code links.
-*   **Impact Analysis:** Developer asks "What if?" -> System traverses Graph DB from the target node -> Lists all breaking downstream services.
-*   **Scaffolding:** PM requests a new service -> Scaffolding Agent selects stack -> Generates boilerplate, Dockerfile, and configs.
+**Frontend** — Next.js 16, React 19, React Flow, Tailwind CSS
 
-### Phase 3: CI/CD Guardrails (The Enforcer)
-1. **Trigger:** PR opened modifying an API.
-2. **Analysis:** Platform compares changes against the Knowledge Graph.
-3. **Check:** Detects missing spec/ADR updates.
-4. **Action:** Blocks the PR (fails CI).
-5. **Auto-Doc:** Auto-Refactoring Generator writes updated docs and posts as a suggested commit.
+**Databases**
 
-### Phase 4: Autonomous Self-Healing (The Patcher)
-1. **Trigger:** Scheduled cron job runs a Health Check.
-2. **Detection:** Identifies a fragile pattern (e.g., missing retry mechanism).
-3. **Remediation:** Self-Healing Agent writes the retry logic and an explanatory ADR.
-4. **PR Creation:** Autonomously opens a PR linking to the Knowledge Graph node to justify the fix.
+| Service | Role |
+|---|---|
+| Neo4j 5.15 | Knowledge graph — nodes and relationships |
+| Qdrant | Vector search for semantic retrieval |
+| PostgreSQL | Users, repos, sessions |
+| Redis | Job store, scaffold zip cache |
+| ChromaDB | Local embedding store for RAG |
 
-### Phase 5: Onboarding & Temporal Review (Mentor & Time Machine)
-*   **Onboarding:** New hire logs in -> System queries graph for core services -> Generates reading list and assigns a low-risk starter ticket.
-*   **Temporal Review:** Post-outage, SRE uses the Temporal Slider to rewind the graph -> Watches visual replay of failure cascade to identify root cause.
+**LLMs** — Groq (`llama-3.1-70b-versatile`, primary) or Gemini
+
+---
+
+## Quick start (local)
+
+### 1. Start the databases
+
+```bash
+docker-compose up -d
+```
+
+This brings up Neo4j, Qdrant, PostgreSQL, and Redis with persistent volumes.
+
+### 2. Configure the backend
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env` with at minimum:
+
+```env
+GITHUB_CLIENT_ID=your_github_oauth_app_client_id
+GITHUB_CLIENT_SECRET=your_github_oauth_app_client_secret
+GROQ_API_KEY=your_groq_api_key          # or GEMINI_API_KEY
+NEO4J_PASSWORD=a_strong_password        # must not be "password"
+TOKEN_ENCRYPTION_KEY=                   # generate below
+```
+
+Generate an encryption key:
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+### 3. Start the backend
+
+```bash
+cd backend
+uv sync
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+API docs are available at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### 4. Start the frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `GITHUB_CLIENT_ID` | Yes | GitHub OAuth App client ID |
+| `GITHUB_CLIENT_SECRET` | Yes | GitHub OAuth App client secret |
+| `GROQ_API_KEY` | Yes* | Groq API key (*or `GEMINI_API_KEY`) |
+| `NEO4J_PASSWORD` | Yes | Neo4j password (must not be the default) |
+| `TOKEN_ENCRYPTION_KEY` | Yes | Fernet key for encrypting stored GitHub tokens |
+| `DATABASE_URL` | No | PostgreSQL connection string (defaults to local Docker) |
+| `NEO4J_URI` | No | Neo4j bolt URI (default: `bolt://localhost:7687`) |
+| `QDRANT_URL` | No | Qdrant REST URL (default: `http://localhost:6333`) |
+| `REDIS_URL` | No | Redis URL (default: `redis://localhost:6379/0`) |
+| `WEBHOOK_SECRET` | No | Secret for validating GitHub webhook payloads |
+| `FRONTEND_URL` | No | CORS allowed origin (default: `http://localhost:3000`) |
+
+---
+
+## API overview
+
+```
+POST /ingest                  Ingest a GitHub repo into the knowledge graph
+GET  /graph/                  Full graph (nodes + edges) for the active repo
+GET  /graph/service/{name}    Subgraph filtered to one service
+
+POST /rag/ask                 RAG Q&A — question → LLM answer with sources
+POST /rag/chat                Multi-turn RAG chat
+POST /rag/sync                Sync Neo4j graph into the vector store
+
+GET  /impact/blast-radius     Upstream + downstream blast radius for a node
+GET  /impact/chain            Shortest dependency path between two nodes
+GET  /impact/summary          LLM-powered risk assessment for a change
+POST /impact/whatif           Run a what-if scenario simulation
+POST /impact/spec-diff        Compare two OpenAPI specs for breaking changes
+
+POST /scaffold/design         Natural language → architecture blueprint
+POST /scaffold/generate       Blueprint → full file tree + downloadable zip
+GET  /scaffold/download/{id}  Download the generated zip
+
+GET  /auth/github             Start GitHub OAuth flow
+GET  /auth/github/callback    OAuth callback
+GET  /health                  Service health check
+```
+
+---
+
+## What-if scenario types
+
+| Scenario | What it simulates |
+|---|---|
+| `deprecate_endpoint` | Mark an endpoint deprecated and forecast downstream impact |
+| `remove_endpoint` | Completely remove an endpoint |
+| `change_field_type` | Change a field's data type |
+| `remove_schema` | Remove a data model |
+| `add_schema` | Add a new schema and forecast consumer impact |
+| `add_endpoint` | Add a new endpoint and see which services benefit |
+| `change_endpoint_signature` | Change request/response structure |
+
+---
+
+## CI
+
+GitHub Actions runs on every push to `main` and on all pull requests:
+
+- **Backend** — ruff lint, mypy type check, pytest
+- **Frontend** — ESLint, TypeScript type check
+- **Docker** — builds both `cortex-backend` and `cortex-frontend` images
+
+---
+
+## Project structure
+
+```
+cortex/
+├── backend/
+│   ├── api/            # FastAPI routers (auth, graph, rag, impact, scaffold, …)
+│   ├── services/       # Business logic (ingestion, RAG, what-if, scaffold, …)
+│   ├── core/           # Config, database init
+│   └── tests/
+├── frontend/
+│   └── src/
+│       ├── app/        # Next.js app router pages
+│       └── components/ # React components (GraphView, …)
+└── docker-compose.yml  # Local dev databases
+```
+
+---
+
+## License
+
+MIT

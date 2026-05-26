@@ -408,7 +408,7 @@ def _llm_enhance_recommendations(
     affected: dict,
 ) -> dict:
     """Use LLM to generate more detailed recommendations."""
-    prompt = f"""You are SPIT — a software architecture impact analyzer.
+    prompt = f"""You are Cortex — a software architecture impact analyzer.
 
 Analyze this What-If scenario and provide an enhanced impact summary:
 

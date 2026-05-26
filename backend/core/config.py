@@ -6,7 +6,7 @@ from pathlib import Path
 _ENV_FILE = Path(__file__).parent.parent / ".env"
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "SPIT - Intelligent Architecture Platform"
+    PROJECT_NAME: str = "Cortex - Intelligent Architecture Platform"
     
     # Neo4j Settings
     NEO4J_URI: str = "bolt://localhost:7687"
@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     QDRANT_URL: str = "http://localhost:6333"
     
     # Postgres Settings
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/spit_db"
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/cortex_db"
     
     # Redis / Celery
     REDIS_URL: str = "redis://localhost:6379/0"

@@ -21,7 +21,7 @@ def _force_rmdir(path: str) -> None:
         shutil.rmtree(path, onerror=_on_error)
 
 # Persistent clone cache — survives across requests so accept can commit back
-CACHE_DIR = os.path.join(os.path.expanduser("~"), ".spit_health_cache")
+CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cortex_health_cache")
 
 
 # ─── Known-bad packages ───────────────────────────────────────────────────────
@@ -85,8 +85,8 @@ class HealthService:
 
         # Configure bot identity so commits don't fail
         for cmd in (
-            ["git", "-C", clone_dir, "config", "user.email", "health-bot@spit.ai"],
-            ["git", "-C", clone_dir, "config", "user.name",  "SPIT Health Bot"],
+            ["git", "-C", clone_dir, "config", "user.email", "health-bot@cortex.ai"],
+            ["git", "-C", clone_dir, "config", "user.name",  "Cortex Health Bot"],
         ):
             subprocess.run(cmd, capture_output=True)
 
@@ -180,16 +180,16 @@ class HealthService:
         return False
 
     def _append_audit_log(self, clone_dir: str, issue: Dict[str, Any]) -> bool:
-        """Append an accepted-issue entry to SPIT_HEALTH_AUDIT.md in the repo."""
+        """Append an accepted-issue entry to CORTEX_HEALTH_AUDIT.md in the repo."""
         import datetime
-        audit_path = os.path.join(clone_dir, "SPIT_HEALTH_AUDIT.md")
+        audit_path = os.path.join(clone_dir, "CORTEX_HEALTH_AUDIT.md")
         ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
         exists = os.path.isfile(audit_path)
         try:
             with open(audit_path, "a", encoding="utf-8") as f:
                 if not exists:
-                    f.write("# SPIT Health Audit Log\n\n"
-                            "Issues accepted by the SPIT Living Knowledge Graph system.\n\n"
+                    f.write("# Cortex Health Audit Log\n\n"
+                            "Issues accepted by the Cortex Living Knowledge Graph system.\n\n"
                             "---\n\n")
                 f.write(
                     f"## {issue.get('title', 'Issue')}  \n"

@@ -1,4 +1,4 @@
-# Neo4j Commands (SPIT)
+# Neo4j Commands (Cortex)
 
 Use these in Neo4j Browser (http://localhost:7474) or any Cypher client.
 
@@ -28,7 +28,7 @@ CALL db.relationshipTypes();
 
 ## Service (repo) scoped queries
 
-SPIT stores repo scope under the `service` property.
+Cortex stores repo scope under the `service` property.
 
 ```cypher
 // Set a parameter for reuse

@@ -224,7 +224,7 @@ function BrainNode({ data, selected }: NodeProps<BrainNodeData>) {
   )
 }
 
-const nodeTypes = { spit: BrainNode }
+const nodeTypes = { cortex: BrainNode }
 
 // ─── Node Detail Sidebar ──────────────────────────────────────────────────────
 
