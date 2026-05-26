@@ -16,11 +16,14 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture(autouse=True, scope="session")
 def _patch_settings():
-    with patch("core.config.settings") as mock_settings:
+    with patch("core.config.settings") as mock_settings, \
+         patch("neo4j.GraphDatabase.driver"):
         mock_settings.GITHUB_CLIENT_ID = "test_client_id"
         mock_settings.GITHUB_CLIENT_SECRET = "test_client_secret"
         mock_settings.GROQ_API_KEY = "test_groq_key"
         mock_settings.GEMINI_API_KEY = None
+        mock_settings.NEO4J_URI = "bolt://localhost:7687"
+        mock_settings.NEO4J_USER = "neo4j"
         mock_settings.NEO4J_PASSWORD = "strong_test_password"
         mock_settings.FRONTEND_URL = "http://localhost:3000"
         mock_settings.REDIS_URL = "redis://localhost:6379/0"
