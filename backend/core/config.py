@@ -2,8 +2,8 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 from pathlib import Path
 
-# Always resolve .env relative to this file (backend/.env) regardless of cwd
-_ENV_FILE = Path(__file__).parent.parent / ".env"
+# Always resolve .env at the repo root regardless of cwd
+_ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Cortex - Intelligent Architecture Platform"

@@ -9,6 +9,8 @@ docker-compose up -d
 
 ## Backend Setup
 
+Ensure the root `.env` is configured (see `.env.example`).
+
 1. **Start the backend server:**
    ```bash
    cd backend

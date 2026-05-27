@@ -125,7 +125,7 @@ def _validate_env() -> None:
         raise RuntimeError(
             "Missing or insecure required environment variables:\n  - "
             + "\n  - ".join(missing)
-            + "\nCheck backend/.env.example for reference."
+            + "\nCheck .env.example for reference."
         )
 
 

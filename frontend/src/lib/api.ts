@@ -14,7 +14,8 @@ function resolveApiBase(): string {
   if (process.env.NODE_ENV === "production") {
     throw new Error(
       "NEXT_PUBLIC_API_URL is not set. " +
-        "Pass it as a build-arg: --build-arg NEXT_PUBLIC_API_URL=https://api.example.com"
+        "Set it in the root .env or pass a build-arg: " +
+        "--build-arg NEXT_PUBLIC_API_URL=https://api.example.com"
     );
   }
   return "http://localhost:8000";

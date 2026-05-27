@@ -50,13 +50,13 @@ docker-compose up -d
 
 This brings up Neo4j, Qdrant, PostgreSQL, and Redis with persistent volumes.
 
-### 2. Configure the backend
+### 2. Configure the environment
 
 ```bash
-cp backend/.env.example backend/.env
+cp .env.example .env
 ```
 
-Edit `backend/.env` with at minimum:
+Edit `.env` with at minimum:
 
 ```env
 GITHUB_CLIENT_ID=your_github_oauth_app_client_id
@@ -64,6 +64,7 @@ GITHUB_CLIENT_SECRET=your_github_oauth_app_client_secret
 GROQ_API_KEY=your_groq_api_key          # or GEMINI_API_KEY
 NEO4J_PASSWORD=a_strong_password        # must not be "password"
 TOKEN_ENCRYPTION_KEY=                   # generate below
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 Generate an encryption key:
@@ -108,6 +109,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `REDIS_URL` | No | Redis URL (default: `redis://localhost:6379/0`) |
 | `WEBHOOK_SECRET` | No | Secret for validating GitHub webhook payloads |
 | `FRONTEND_URL` | No | CORS allowed origin (default: `http://localhost:3000`) |
+| `NEXT_PUBLIC_API_URL` | No | Frontend API base URL (default: `http://localhost:8000`) |
 
 ---
 
