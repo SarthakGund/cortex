@@ -443,31 +443,31 @@ function FilterBar({
   return (
     <Panel position="top-left">
       <div
-        className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 rounded-2xl"
+        className="flex flex-wrap items-center gap-1 p-1 rounded-lg"
         style={{
-          background: 'rgba(255,255,255,0.90)',
-          border: '1px solid rgba(0,0,0,0.08)',
-          backdropFilter: 'blur(16px)',
+          background: 'var(--color-card)',
+          border: '1px solid var(--color-border)',
           maxWidth: 'calc(100vw - 320px)',
-          boxShadow: '0 4px 24px #00000018',
+          boxShadow: 'var(--shadow-md)',
         }}
       >
         {/* Master toggle */}
         <button
           onClick={allActive ? onClearAll : onSelectAll}
           title={allActive ? 'Hide all' : 'Show all'}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium transition-all"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors"
           style={{
-            background: allActive ? 'rgba(0,0,0,0.07)' : 'transparent',
-            border: '1px solid rgba(0,0,0,0.10)',
-            color: allActive ? '#0f172a' : '#94a3b8',
+            background: allActive ? 'var(--color-muted)' : 'transparent',
+            border: 'none',
+            boxShadow: 'none',
+            color: allActive ? 'var(--color-foreground)' : 'var(--color-muted-foreground)',
           }}
         >
-          <LayoutGrid size={10} />
-          {allActive ? 'All' : 'None'}
+          <LayoutGrid size={12} />
+          All
         </button>
 
-        <div className="w-px h-4 mx-0.5" style={{ background: 'rgba(0,0,0,0.08)' }} />
+        <div className="w-px h-5 mx-0.5" style={{ background: 'var(--color-border)' }} />
 
         {stats.map(s => {
           const sty = getStyle(s.label)
@@ -477,28 +477,37 @@ function FilterBar({
               key={s.label}
               onClick={() => onToggle(s.label)}
               title={`${isActive ? 'Hide' : 'Show'} ${s.label}`}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium transition-all cursor-pointer select-none"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors cursor-pointer select-none"
               style={{
-                background: isActive ? `${sty.color}18` : 'transparent',
-                border: `1px solid ${isActive ? sty.color + '55' : 'rgba(0,0,0,0.08)'}`,
-                color: isActive ? sty.color : '#94a3b8',
-                boxShadow: isActive ? `0 0 8px ${sty.color}30` : 'none',
-                opacity: isActive ? 1 : 0.45,
+                background: isActive ? 'var(--color-muted)' : 'transparent',
+                border: 'none',
+                boxShadow: 'none',
+                color: isActive ? 'var(--color-foreground)' : 'var(--color-muted-foreground)',
+                opacity: isActive ? 1 : 0.55,
               }}
             >
-              {/* Color dot */}
+              {/* Color square swatch */}
               <span
                 style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: sty.color,
-                  boxShadow: isActive ? `0 0 4px ${sty.color}` : 'none',
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  background: isActive ? sty.color : 'transparent',
+                  border: `1.5px solid ${sty.color}`,
                   flexShrink: 0,
                 }}
               />
               <span>{s.label}</span>
-              <span style={{ color: isActive ? sty.color : '#cbd5e1', fontWeight: 700 }}>
+              <span
+                className="tabular-nums px-1 rounded"
+                style={{
+                  fontWeight: 600,
+                  fontSize: 10,
+                  background: isActive ? 'var(--color-card)' : 'transparent',
+                  border: isActive ? '1px solid var(--color-border)' : '1px solid transparent',
+                  color: 'var(--color-muted-foreground)',
+                }}
+              >
                 {s.count}
               </span>
             </button>

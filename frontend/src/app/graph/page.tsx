@@ -4,6 +4,9 @@ import { useEffect, useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Node, Edge } from 'reactflow'
+import {
+  Network, Search, RotateCw, X, Share2, Spline, Layers, AlertTriangle,
+} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 // React Flow must be client-only (no SSR)
@@ -12,14 +15,46 @@ import type { GraphViewProps } from '@/components/GraphView'
 const GraphView = dynamic<GraphViewProps>(() => import('@/components/GraphView'), {
   ssr: false,
   loading: () => (
-    <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-600">
-      <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      <p>Rendering graph…</p>
+    <div className="flex flex-col items-center justify-center h-full gap-4 text-[var(--color-muted-foreground)]">
+      <div className="w-10 h-10 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm">Rendering graph…</p>
     </div>
   ),
 })
 
 import { API_BASE } from "@/lib/api"
+
+// ─── KPI tile ──────────────────────────────────────────────────────────────
+function StatTile({
+  icon, label, value, accent,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: React.ReactNode
+  accent?: string
+}) {
+  return (
+    <div className="swiss-card px-4 py-3 flex items-center gap-3 min-w-0">
+      <div
+        className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0"
+        style={{
+          background: accent ? `${accent}18` : 'var(--color-muted)',
+          color: accent ?? 'var(--color-foreground)',
+        }}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-xl font-bold leading-none text-[var(--color-foreground)] tabular-nums">
+          {value}
+        </div>
+        <div className="text-[10px] uppercase tracking-widest text-[var(--color-muted-foreground)] mt-1 truncate">
+          {label}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function GraphPage() {
   const { token } = useAuth()
@@ -71,30 +106,48 @@ export default function GraphPage() {
     fetchGraph(s || undefined)
   }
 
+  const typeCount = stats.length
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
-            Knowledge Graph
-            {service && (
-              <span className="ml-2 text-blue-400 text-sm font-medium">— {service}</span>
-            )}
-          </h1>
-          <p className="text-sm text-[var(--color-text-muted)]">Explore nodes and relationships in Neo4j.</p>
+    <div className="max-w-[1400px] mx-auto flex flex-col gap-4">
+      {/* ── Header / toolbar ───────────────────────────── */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 swiss-panel flex items-center justify-center flex-shrink-0">
+            <Network size={18} className="text-[var(--color-foreground)]" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-[var(--color-foreground)] leading-tight flex items-center gap-2">
+              Knowledge Graph
+              {service && (
+                <span className="swiss-chip px-2 py-0.5 text-[11px] font-medium text-[var(--color-primary)]">
+                  {service}
+                </span>
+              )}
+            </h1>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              Explore nodes and relationships across your codebase.
+            </p>
+          </div>
         </div>
 
         <form onSubmit={handleFilter} className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Filter by service name…"
-            value={serviceInput}
-            onChange={e => setServiceInput(e.target.value)}
-            className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
-          />
+          <div className="relative">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)] pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder="Filter by service name…"
+              value={serviceInput}
+              onChange={e => setServiceInput(e.target.value)}
+              className="bg-[var(--color-input)] border border-[var(--color-border)] rounded-md pl-9 pr-3 py-2 text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] w-56"
+            />
+          </div>
           <button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg px-3 py-2 transition-colors"
+            className="swiss-button text-sm font-semibold px-4 py-2 hover:opacity-90 transition-opacity"
           >
             Filter
           </button>
@@ -102,42 +155,68 @@ export default function GraphPage() {
             <button
               type="button"
               onClick={() => { setService(''); setServiceInput(''); fetchGraph() }}
-              className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] text-sm px-2 py-2 transition-colors"
+              title="Clear filter"
+              className="swiss-button-ghost h-9 w-9 flex items-center justify-center hover:bg-[var(--color-muted)] transition-colors"
             >
-              Clear
+              <X size={15} />
             </button>
           )}
           <button
             type="button"
             onClick={() => fetchGraph(service || undefined)}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] text-sm px-2 py-2 transition-colors"
             title="Refresh"
+            className="swiss-button-ghost h-9 w-9 flex items-center justify-center hover:bg-[var(--color-muted)] transition-colors"
           >
-            ↻
+            <RotateCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
         </form>
       </div>
 
-      {/* ── Graph canvas ────────────────────────────────── */}
-      <main className="relative min-h-[60vh] h-[calc(100vh-240px)]">
+      {/* ── KPI tiles ──────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <StatTile
+          icon={<Share2 size={16} />}
+          label="Nodes"
+          value={loading ? '—' : nodes.length}
+          accent="#6366f1"
+        />
+        <StatTile
+          icon={<Spline size={16} />}
+          label="Relationships"
+          value={loading ? '—' : edges.length}
+          accent="#8b5cf6"
+        />
+        <StatTile
+          icon={<Layers size={16} />}
+          label="Node Types"
+          value={loading ? '—' : typeCount}
+          accent="#f59e0b"
+        />
+      </div>
+
+      {/* ── Graph canvas ───────────────────────────────── */}
+      <main className="swiss-card relative overflow-hidden min-h-[75vh] h-[calc(100vh-180px)]">
         {loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-gray-50/80 gap-4 text-gray-600">
-            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-[var(--color-background)]/70 backdrop-blur-sm gap-4 text-[var(--color-muted-foreground)]">
+            <div className="w-10 h-10 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
             <p className="text-sm">Loading knowledge graph…</p>
           </div>
         )}
 
         {error && !loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-3">
-            <div className="bg-red-900/40 border border-red-700 rounded-xl px-6 py-4 text-center max-w-sm">
-              <p className="text-red-400 font-medium mb-1">Failed to load graph</p>
-              <p className="text-red-300 text-sm">{error}</p>
-              <p className="text-gray-500 text-xs mt-2">
-                Make sure Neo4j is running and you've ingested at least one repo.
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-3 p-6">
+            <div className="swiss-card border-[var(--color-destructive)]/40 px-6 py-5 text-center max-w-sm">
+              <div className="w-10 h-10 mx-auto rounded-full flex items-center justify-center bg-[var(--color-destructive)]/10 text-[var(--color-destructive)] mb-3">
+                <AlertTriangle size={18} />
+              </div>
+              <p className="text-[var(--color-foreground)] font-semibold mb-1">Failed to load graph</p>
+              <p className="text-[var(--color-muted-foreground)] text-sm">{error}</p>
+              <p className="text-[var(--color-muted-foreground)] text-xs mt-2">
+                Make sure Neo4j is running and you&apos;ve ingested at least one repo.
               </p>
               <button
                 onClick={() => fetchGraph(service || undefined)}
-                className="mt-3 bg-red-700 hover:bg-red-600 text-slate-900 text-sm rounded-lg px-4 py-1.5 transition-colors"
+                className="swiss-button mt-4 text-sm font-semibold px-4 py-1.5 hover:opacity-90 transition-opacity"
               >
                 Retry
               </button>
@@ -146,12 +225,14 @@ export default function GraphPage() {
         )}
 
         {!loading && !error && nodes.length === 0 && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-500">
-            <p className="text-4xl">𝗚</p>
-            <p className="text-lg font-medium text-gray-600">Graph is empty</p>
-            <p className="text-sm">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[var(--color-muted-foreground)] p-6 text-center">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center swiss-panel">
+              <Network size={24} className="text-[var(--color-muted-foreground)]" />
+            </div>
+            <p className="text-lg font-semibold text-[var(--color-foreground)]">Graph is empty</p>
+            <p className="text-sm max-w-xs">
               Ingest a repo from the{' '}
-              <Link href="/" className="text-indigo-400 hover:underline">home page</Link>{' '}
+              <Link href="/" className="text-[var(--color-primary)] hover:underline font-medium">home page</Link>{' '}
               to populate the knowledge graph.
             </p>
           </div>
@@ -167,12 +248,16 @@ export default function GraphPage() {
         )}
       </main>
 
-      {/* ── Footer summary ──────────────────────────────── */}
-      <footer className="px-6 py-2 border-t border-gray-200 flex items-center justify-between text-xs text-gray-600 flex-shrink-0">
-        <span>
-          {nodes.length} nodes · {edges.length} edges
+      {/* ── Footer summary ─────────────────────────────── */}
+      <footer className="flex items-center justify-between text-xs text-[var(--color-muted-foreground)] px-1">
+        <span className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className={`absolute inline-flex h-full w-full rounded-full ${loading ? 'bg-[var(--color-accent)]' : error ? 'bg-[var(--color-destructive)]' : 'bg-emerald-500'} opacity-75 ${loading ? 'animate-ping' : ''}`} />
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${loading ? 'bg-[var(--color-accent)]' : error ? 'bg-[var(--color-destructive)]' : 'bg-emerald-500'}`} />
+          </span>
+          {loading ? 'Syncing…' : error ? 'Disconnected' : `${nodes.length} nodes · ${edges.length} edges`}
         </span>
-        <span>Cortex · Living Knowledge Graph</span>
+        <span className="font-medium">Cortex · Living Knowledge Graph</span>
       </footer>
     </div>
   )

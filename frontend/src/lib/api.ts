@@ -4,24 +4,15 @@
  * All pages/components must import API_BASE from here instead of
  * hard-coding `process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"`.
  *
- * In production builds, NEXT_PUBLIC_API_URL must be set at build time.
- * The check below surfaces a clear error rather than silently hitting localhost.
+ * Requests go through a same-origin Next.js rewrite (/api/backend/* -> backend,
+ * configured in next.config.ts). The browser only ever talks to its own origin,
+ * so the httpOnly auth cookie is always sent and there's no CORS/cross-origin
+ * cookie blocking (e.g. Firefox Enhanced Tracking Protection dropping the
+ * cookie on a :3000 -> :8000 fetch). To repoint the backend, set
+ * BACKEND_INTERNAL_URL for the Next.js server — no rebuild of this value needed.
  */
 
-function resolveApiBase(): string {
-  const env = process.env.NEXT_PUBLIC_API_URL;
-  if (env) return env;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "NEXT_PUBLIC_API_URL is not set. " +
-        "Set it in the root .env or pass a build-arg: " +
-        "--build-arg NEXT_PUBLIC_API_URL=https://api.example.com"
-    );
-  }
-  return "http://localhost:8000";
-}
-
-export const API_BASE: string = resolveApiBase();
+export const API_BASE: string = "/api/backend";
 
 /**
  * Thin fetch wrapper that:

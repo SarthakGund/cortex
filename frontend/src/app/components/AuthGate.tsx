@@ -40,7 +40,7 @@ function LoginScreen() {
             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-400 rounded-full border-4 border-[var(--color-background)]" />
           </div>
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
-            Weavr
+            Cortex
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
             Knowledge Graph Intelligence

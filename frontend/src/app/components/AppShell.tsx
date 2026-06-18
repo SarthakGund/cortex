@@ -198,7 +198,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Network size={18} className="text-[var(--color-foreground)]" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-[var(--color-foreground)] leading-none">Weavr</h1>
+              <h1 className="text-sm font-bold text-[var(--color-foreground)] leading-none">Cortex</h1>
               <p className="text-[10px] text-[var(--color-muted-foreground)] mt-0.5 leading-none">
                 Knowledge Graph Intelligence
               </p>
