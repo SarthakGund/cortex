@@ -61,6 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       credentials: "include",
     }).catch(() => {});
     sessionStorage.removeItem("github_token");
+    // Let the intro video replay on the next login.
+    sessionStorage.removeItem("cortex_intro_shown");
     setUser(null);
     setToken(null);
   }, []);

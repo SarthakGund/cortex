@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cortex Product Video</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0a; overflow: hidden; }
+    * { box-sizing: border-box; }
+    #root { position: fixed; inset: 0; }
+    /* Simple loading state shown until React mounts */
+    #loading {
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.4); font: 500 14px/1 Inter, system-ui, sans-serif; letter-spacing: 0.04em;
+    }
+  </style>
+  <!-- React + ReactDOM (UMD) and Babel standalone power the self-contained animation -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+</head>
+<body>
+  <div id="loading">Loading…</div>
+  <div id="root"></div>
+
+  <!-- Always start the animation from the top, never resume a persisted playhead -->
+  <script>
+    try { localStorage.removeItem("cortexvid:t"); } catch (e) {}
+  </script>
+
+  <!-- The animation engine + Cortex scenes. Registers window.CortexVideo. -->
+  <script type="text/babel" data-presets="react" src="./video.jsx"></script>
+
+  <!-- Mount it -->
+  <script type="text/babel" data-presets="react">
+    const loadingEl = document.getElementById("loading");
+    if (loadingEl) loadingEl.remove();
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(React.createElement(window.CortexVideo));
+  </script>
+</body>
+</html>

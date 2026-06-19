@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE as API } from "@/lib/api";
+import VideoSplash from "./VideoSplash";
 
 type RepoItem = {
   id: number;
@@ -189,6 +190,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-grid">
+      {/* Product intro video — plays once after login */}
+      <VideoSplash />
+
       {/* ── Header ── */}
       <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-background)]">
         <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
